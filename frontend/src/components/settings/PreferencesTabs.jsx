@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Card from '../ui/Card';
 import Icon from '../ui/Icon';
 import { Toggle } from '../ui/Form';
-import { loadSettings, saveSettings, playSound } from '../../settings';
+import { loadSettings, saveSettings, previewSound, SOUND_TYPES } from '../../settings';
 import { VIP_THEMES, getTierName, canUseTheme, lowestTierFor } from '../../utils/vip';
 import CustomThemeCard from './CustomThemeCard';
 
@@ -30,6 +30,16 @@ export function NotificationTab({ showSaved }) {
     setSettings(next);
     saveSettings(next);
     showSaved();
+  };
+
+  const chooseSound = (soundId) => {
+    update('soundType', soundId);
+    previewSound(soundId, settings.volume, false);
+  };
+
+  const finishVolume = (value) => {
+    update('volume', value);
+    previewSound(settings.soundType, value, false);
   };
 
   const handleDesktopToggle = async (value) => {
@@ -61,12 +71,62 @@ export function NotificationTab({ showSaved }) {
         <div className="divide-y divide-slate-100">
           <ToggleRow
             title="เสียงแจ้งเตือน"
-            desc="เล่นเสียงสั้น ๆ เมื่อมีการแจ้งเตือน"
+            desc="เล่นเสียงเมื่อมีข้อความหรือการแจ้งเตือนใหม่ ถ้าถูกแท็กชื่อจะดัง 2 ครั้ง"
             checked={settings.sound}
             onChange={(v) => update('sound', v)}
-            extra={<button type="button" onClick={playSound} className="text-sm text-indigo-600 hover:underline">ทดลองเสียง</button>}
           />
-          <ToggleRow title="แจ้งเตือนบนเดสก์ท็อป" desc={desktopDesc} checked={settings.desktop && permission === 'granted'} onChange={handleDesktopToggle} />
+          {settings.sound && (
+            <div className="py-4 space-y-4">
+              <div>
+                <p className="text-sm font-medium text-slate-800 mb-2">เลือกเสียง</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {SOUND_TYPES.map(sound => {
+                    const selected = settings.soundType === sound.id;
+                    return (
+                      <button
+                        key={sound.id}
+                        type="button"
+                        onClick={() => chooseSound(sound.id)}
+                        className={`h-11 rounded-xl border-2 text-sm font-medium flex items-center justify-center gap-2 ${
+                          selected ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                        }`}
+                      >
+                        <Icon name="bell" className="w-4 h-4" />
+                        {sound.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-slate-800">ความดัง</p>
+                  <span className="text-sm text-slate-500 tabular-nums">{settings.volume}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={settings.volume}
+                  onChange={(e) => setSettings({ ...settings, volume: Number(e.target.value) })}
+                  onPointerUp={(e) => finishVolume(Number(e.target.value))}
+                  onKeyUp={(e) => finishVolume(Number(e.target.value))}
+                  className="w-full accent-indigo-600"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => previewSound(settings.soundType, settings.volume, false)} className="h-9 px-3 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50">
+                  ทดลองเสียงข้อความใหม่
+                </button>
+                <button type="button" onClick={() => previewSound(settings.soundType, settings.volume, true)} className="h-9 px-3 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50">
+                  ทดลองเสียงถูกแท็กชื่อ
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </Card>
     </div>

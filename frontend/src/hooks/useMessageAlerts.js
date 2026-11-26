@@ -34,10 +34,14 @@ export default function useMessageAlerts({
       }
     };
 
-    const notify = (title, body, target, alwaysToast) => {
+    const notify = (title, body, target, alwaysToast, isMention) => {
       if (currentUser.presence === 'busy') return;
       const settings = loadSettings();
-      if (settings.sound) playSound();
+      if (isMention) {
+        playSound('mention');
+      } else {
+        playSound('normal');
+      }
       if (settings.desktop) showDesktopNotification(title, body);
       if (alwaysToast) showToast(title, body, target);
     };
@@ -61,7 +65,7 @@ export default function useMessageAlerts({
       const muted = (currentUser.mutedRooms || []).includes(key);
       if (muted && !isMention) return;
       if (isMention && settings.notifyMention) {
-        notify(authorName(message) + ' กล่าวถึงคุณใน ' + roomName, shortText(message), target, true);
+        notify(authorName(message) + ' กล่าวถึงคุณใน ' + roomName, shortText(message), target, true, true);
       } else if (settings.notifyChannel) {
         notify(authorName(message) + ' ใน ' + roomName, shortText(message), target, false);
       }

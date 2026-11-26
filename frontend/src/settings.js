@@ -9,6 +9,8 @@ const DEFAULT_SETTINGS = {
   notifyChannel: false,
   notifyTask: true,
   sound: true,
+  soundType: 'ding',
+  volume: 60,
   desktop: false
 };
 
@@ -98,21 +100,89 @@ export function applySettings(settings) {
   }
 }
 
-export function playSound() {
+export const SOUND_TYPES = [
+  { id: 'ding', label: 'ติ๊ง' },
+  { id: 'pop', label: 'ป๊อป' },
+  { id: 'bell', label: 'กระดิ่ง' },
+  { id: 'chime', label: 'กริ๊ง' }
+];
+
+let audio = null;
+let lastPlayed = 0;
+
+function getAudio() {
+  if (!audio) {
+    audio = new AudioContext();
+  }
+  if (audio.state === 'suspended') {
+    audio.resume();
+  }
+  return audio;
+}
+
+function playTone(frequency, endFrequency, start, length, volume, wave) {
+  const ctx = getAudio();
+  const oscillator = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const begin = ctx.currentTime + start;
+
+  oscillator.type = wave;
+  oscillator.frequency.setValueAtTime(frequency, begin);
+  if (endFrequency) {
+    oscillator.frequency.exponentialRampToValueAtTime(endFrequency, begin + length);
+  }
+
+  gain.gain.setValueAtTime(0.0001, begin);
+  gain.gain.exponentialRampToValueAtTime(volume, begin + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, begin + length);
+
+  oscillator.connect(gain);
+  gain.connect(ctx.destination);
+  oscillator.start(begin);
+  oscillator.stop(begin + length + 0.05);
+}
+
+function playPattern(type, volume, start) {
+  if (type === 'pop') {
+    playTone(700, 180, start, 0.12, volume, 'sine');
+    return 0.14;
+  }
+  if (type === 'bell') {
+    playTone(660, null, start, 0.7, volume, 'sine');
+    playTone(1320, null, start, 0.5, volume * 0.4, 'sine');
+    return 0.3;
+  }
+  if (type === 'chime') {
+    playTone(784, null, start, 0.18, volume, 'triangle');
+    playTone(1047, null, start + 0.12, 0.3, volume, 'triangle');
+    return 0.3;
+  }
+  playTone(880, null, start, 0.25, volume, 'sine');
+  return 0.2;
+}
+
+export function previewSound(type, volumePercent, isMention) {
+  const volume = (volumePercent / 100) * 0.4;
+  if (volume <= 0) return;
   try {
-    const audio = new AudioContext();
-    const oscillator = audio.createOscillator();
-    const gain = audio.createGain();
-    oscillator.type = 'sine';
-    oscillator.frequency.value = 880;
-    gain.gain.value = 0.1;
-    oscillator.connect(gain);
-    gain.connect(audio.destination);
-    oscillator.start();
-    oscillator.stop(audio.currentTime + 0.15);
+    const gap = playPattern(type, volume, 0);
+    if (isMention) {
+      playPattern(type, volume, gap);
+    }
   } catch (error) {
     console.error('Cannot play sound:', error);
   }
+}
+
+export function playSound(kind) {
+  const settings = loadSettings();
+  if (!settings.sound) return;
+
+  const now = Date.now();
+  if (now - lastPlayed < 400) return;
+  lastPlayed = now;
+
+  previewSound(settings.soundType, settings.volume, kind === 'mention');
 }
 
 export function showDesktopNotification(title, body) {

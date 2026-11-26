@@ -10,7 +10,8 @@ import { canUseTheme, getPerks } from '../utils/vip.js';
 import { findUserById, listUsers, findLoginByEmail, getBlockedIds, toIso } from '../models/userModel.js';
 import { loadGroup, loadGroups, getGroupIdsForUser, listChannels } from '../models/groupModel.js';
 
-const SETTING_KEYS = ['theme', 'fontSize', 'notifyDm', 'notifyMention', 'notifyChannel', 'notifyTask', 'sound', 'desktop'];
+const SETTING_KEYS = ['theme', 'fontSize', 'notifyDm', 'notifyMention', 'notifyChannel', 'notifyTask', 'sound', 'soundType', 'volume', 'desktop'];
+const SOUND_TYPES = ['ding', 'pop', 'bell', 'chime'];
 const PRESENCE_LIST = ['online', 'busy', 'sleep', 'offline'];
 
 export function publicUser(user) {
@@ -272,6 +273,15 @@ export const saveSettings = async (req, res) => {
 
   if (!(await canUseTheme(user, cleanSettings.theme))) {
     cleanSettings.theme = 'light';
+  }
+  if (cleanSettings.soundType !== undefined && !SOUND_TYPES.includes(cleanSettings.soundType)) {
+    cleanSettings.soundType = 'ding';
+  }
+  if (cleanSettings.volume !== undefined) {
+    let volume = Math.round(Number(cleanSettings.volume));
+    if (!volume || volume < 0) volume = 0;
+    if (volume > 100) volume = 100;
+    cleanSettings.volume = volume;
   }
 
   await query('UPDATE users SET settings = $2 WHERE id = $1', [user.id, JSON.stringify(cleanSettings)]);

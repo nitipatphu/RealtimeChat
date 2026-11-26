@@ -241,7 +241,7 @@ Express 5 จับ error จาก async function ให้เอง แล้�
 | `notifications.js` | `addNotification` บันทึกแจ้งเตือนลงฐานข้อมูลแล้วส่ง Socket `notification:new`, `notifyMentions` แจ้งคนที่ถูก @, `notifyThreadReply` แจ้งเจ้าของข้อความและคนที่คุยในเธรด |
 | `mentions.js` | `findMentions(text, members, allowEveryone)` หาว่าข้อความแท็กใคร (เรียงชื่อยาวก่อน กันชื่อ "มิ้น" ไปโดน "มิ้นท์") และรองรับ `@everyone` / `@ทุกคน` |
 | `moderation.js` | `isBanned`, `getTimeoutUntil`, `requireNotTimedOut`, `findInvite` (หาจากรหัสเชิญหลักของกลุ่มก่อน แล้วค่อยหาในลิงก์เชิญ), `isInviteUsable` |
-| `attachments.js` | `cleanAttachments` ตรวจไฟล์แนบที่หน้าเว็บส่งมา ต้องเป็น URL ที่ระบบสร้างเอง ต้องมีไฟล์อยู่จริง ไม่ซ้ำ ไม่เกิน 5 ไฟล์ |
+| `attachments.js` | `cleanAttachments` ตรวจไฟล์แนบที่หน้าเว็บส่งมา `isOurFile` เช็คว่า URL ขึ้นต้นด้วย `/uploads/files/` และไม่มี `/`, `\` หรือ `..` ในชื่อไฟล์ (กันอ้างไฟล์นอกโฟลเดอร์) ต้องมีไฟล์อยู่จริง ไม่ซ้ำ ไม่เกิน 5 ไฟล์ |
 | `vip.js` | ระดับ VIP อ่านจากตาราง `tier_settings` ทั้งหมด (ไม่ได้ล็อกไว้ในโค้ด) และ `updateTierTable` เพิ่มคอลัมน์ชื่อ/ไอคอน/สี/ลำดับให้ฐานข้อมูลเดิมตอนเปิด server, `getVipTier` (เช็ควันหมดอายุ), `getTierSettings` (อ่านจากตาราง tier_settings), `getPerks` (สิทธิพิเศษของ user), `canUseTheme`, `makeVipRecord` (ต่ออายุจากวันหมดอายุเดิมถ้าระดับเดียวกัน), `makeVipCode` (`VIP-XXXX-XXXX`), `formatThaiDate` (ปี พ.ศ.) |
 | `logs.js` | `addGroupLog` (ประวัติในกลุ่ม), `addAdminLog` (ประวัติของ Admin/Staff) |
 | `usage.js` | เก็บสถิติการใช้งาน ทุกครั้งที่มีคนต่อ Socket (`identify`) จะบันทึกว่าวันนี้คนนี้เข้าใช้ (`daily_active_users`) และถ้าจำนวนคนออนไลน์พร้อมกันมากกว่าสถิติของวันนี้จะบันทึกใหม่ (`daily_peak_online`) ตารางสองตัวนี้ถูกสร้างเองตอนเปิด server (`CREATE TABLE IF NOT EXISTS`) |
@@ -265,7 +265,7 @@ controller คือโค้ดที่ทำงานจริงของแ
 | `changeAvatar`, `removeAvatar` | เปลี่ยน/ลบรูปโปรไฟล์ (ลบไฟล์เก่าทิ้งด้วย) |
 | `changePassword` | ต้องใส่รหัสเดิมถูกก่อน |
 | `deleteAccount` | ต้องใส่รหัสผ่าน ห้ามลบถ้ายังเป็นเจ้าของกลุ่ม หรือเป็น Administrator คนสุดท้าย |
-| `saveSettings` | บันทึกการตั้งค่า (ธีม แจ้งเตือน เสียง) เฉพาะ key ที่อยู่ใน `SETTING_KEYS` |
+| `saveSettings` | บันทึกการตั้งค่า (ธีม แจ้งเตือน เสียง) เฉพาะ key ที่อยู่ใน `SETTING_KEYS` และตรวจ `soundType` ต้องอยู่ใน `SOUND_TYPES` ส่วน `volume` ต้องอยู่ระหว่าง 0–100 |
 | `setPresence` | สถานะ online / busy / sleep / offline |
 | `markAsRead` | บันทึกว่าอ่านห้องนี้ถึงตอนนี้แล้ว (`read_markers`) |
 | `getUnread` | นับข้อความที่ยังไม่อ่านและจำนวนที่ถูก mention ของทุกห้อง (Channel, Project, DM, แชทกลุ่ม) ด้วย SQL `count(*)` เทียบกับเวลาใน `read_markers` |
@@ -651,7 +651,7 @@ router.post('/:id/messages', addMessage);
 | `main.jsx` | ใช้ธีมที่บันทึกไว้ก่อน render (กันจอกระพริบเป็นสีขาว) แล้ว render `<App />` ถ้าเลือกธีม "ตามระบบ" จะเปลี่ยนตามมือถือ/คอมทันที |
 | `api.js` | `apiGet(path)`, `apiSend(method, path, body)`, `apiUpload(path, formData)` ใส่ token ให้ทุก request ถ้า backend ตอบ 401 จะลบ token แล้วรีโหลดหน้า (กลับไปหน้า login) ถ้าไม่สำเร็จจะ `throw` ข้อความ error จาก backend |
 | `socket.js` | สร้างการเชื่อมต่อ Socket.io ตัวเดียวใช้ทั้งแอป |
-| `settings.js` | `loadSettings`, `saveSettings` (เก็บใน localStorage และส่งไป backend), `applySettings` (ใส่ class ธีมและขนาดตัวอักษรที่ `<html>`), `playSound` (เสียงแจ้งเตือนด้วย Web Audio), `showDesktopNotification` |
+| `settings.js` | `loadSettings`, `saveSettings` (เก็บใน localStorage และส่งไป backend), `applySettings` (ใส่ class ธีมและขนาดตัวอักษรที่ `<html>`), ระบบเสียงแจ้งเตือน (`SOUND_TYPES`, `playSound`, `previewSound` ดูหัวข้อ 10.10), `showDesktopNotification` |
 | `blockedContext.js` | React Context เก็บรายชื่อคนที่บล็อก ให้ ChatMessage ซ่อนข้อความของคนที่บล็อก |
 | `index.css` | โหลด Tailwind และกำหนดสีของแต่ละธีม (light, dark, sakura, midnight, ocean, forest, custom) |
 
@@ -701,7 +701,7 @@ App.jsx เก็บ state ส่วนใหญ่ของแอป แล้�
 | `useGroupEvents.js` | ส่ง `join-group` และฟัง `group:updated` (อัปเดตกลุ่มทันทีเมื่อมีคนแก้), `group:removed`, `group:deleted`, `group:added` ถ้าห้องที่เปิดอยู่ถูกลบหรือเราไม่มีสิทธิ์แล้ว จะย้ายไปห้องอื่นให้ |
 | `useChannelEvents.js` | ฟังข้อความและ Channel ใหม่/แก้/ลบ แล้วอัปเดต state `channels` (ไม่เพิ่มข้อความซ้ำถ้ามี id นี้แล้ว) |
 | `useMessageAlerts.js` | ฟังข้อความใหม่ทุกประเภท แล้วตัดสินใจว่าจะเพิ่มตัวเลขที่ยังไม่อ่าน เล่นเสียง ขึ้นป๊อปอัป หรือแจ้งเตือนบนเดสก์ท็อปไหม ตามการตั้งค่าของผู้ใช้ ไม่แจ้งเตือนถ้าเป็นห้องที่ปิดเสียงไว้ ห้องที่เปิดอยู่ สถานะ "ไม่ว่าง" หรือคนที่บล็อก |
-| `useNotifications.js` | โหลดแจ้งเตือนและฟัง `notification:new` มีฟังก์ชัน `markRead`, `markAllRead` |
+| `useNotifications.js` | โหลดแจ้งเตือนและฟัง `notification:new` (เล่นเสียงด้วย ยกเว้นสถานะ "ไม่ว่าง" หรือปิดแจ้งเตือนประเภทนั้นไว้) มีฟังก์ชัน `markRead`, `markAllRead` |
 | `useChatScroll.js` | เลื่อนแชทลงล่างสุดเมื่อมีข้อความใหม่ แต่ถ้าผู้ใช้เลื่อนขึ้นไปอ่านข้อความเก่าอยู่จะไม่เลื่อนให้ (ยกเว้นเป็นข้อความที่ตัวเองส่ง) และ `rememberPosition` จำตำแหน่งตอนโหลดข้อความเก่า ไม่ให้จอกระโดด |
 | `useJumpToMessage.js` | ค้นหาเจอแล้วกดไปที่ข้อความ ถ้าข้อความยังไม่ถูกโหลด จะโหลดหน้าเก่าเพิ่มทีละหน้า (สูงสุด 20 หน้า) จนเจอ แล้วไฮไลต์สีเหลือง 2.5 วินาที |
 
@@ -803,7 +803,7 @@ App.jsx เก็บ state ส่วนใหญ่ของแอป แล้�
 | `UserSettingsView.jsx` | หน้าแท็บ |
 | `ProfileTab.jsx` | ชื่อ รูป ตำแหน่ง bio สีแบนเนอร์ |
 | `AccountTab.jsx` | เปลี่ยนรหัสผ่าน ลบบัญชี |
-| `PreferencesTabs.jsx` | `AppearanceTab` (ธีม ขนาดตัวอักษร) และ `NotificationTab` (เปิด/ปิดแจ้งเตือนแต่ละแบบ เสียง เดสก์ท็อป) |
+| `PreferencesTabs.jsx` | `AppearanceTab` (ธีม ขนาดตัวอักษร) และ `NotificationTab` (เปิด/ปิดแจ้งเตือนแต่ละแบบ, เลือกเสียง 4 แบบ, แถบความดัง, ปุ่มทดลองเสียง, แจ้งเตือนบนเดสก์ท็อป) |
 | `VipTab.jsx` | สถานะ VIP และช่องกรอกรหัส |
 | `CustomThemeCard.jsx` | ตั้งสีธีมเอง (VIP) |
 
@@ -928,6 +928,42 @@ if (!confirmed) return;
 ```
 กด Esc หรือปุ่มย้อนกลับบนมือถือตอนกล่องเปิดอยู่ จะปิดแค่กล่อง ไม่ปิดหน้าต่างที่อยู่ข้างหลัง
 
+### 10.10 เสียงแจ้งเตือน
+เสียงไม่ได้ใช้ไฟล์เสียง เบราว์เซอร์สร้างเสียงเองด้วย Web Audio API โค้ดทั้งหมดอยู่ใน `frontend/src/settings.js`
+
+| ฟังก์ชัน | ทำอะไร |
+|---|---|
+| `SOUND_TYPES` | รายชื่อเสียง: ติ๊ง (`ding`), ป๊อป (`pop`), กระดิ่ง (`bell`), กริ๊ง (`chime`) |
+| `getAudio()` | สร้าง `AudioContext` ครั้งเดียวแล้วใช้ซ้ำ (ถ้าสร้างใหม่ทุกครั้ง เบราว์เซอร์อาจหยุดเล่นเสียง) |
+| `playTone(frequency, endFrequency, start, length, volume, wave)` | สร้างโทน 1 เสียง ค่อยๆ ดังขึ้นแล้วเบาลงเพื่อไม่ให้มีเสียงแตก |
+| `playPattern(type, volume, start)` | กำหนดว่าแต่ละเสียงประกอบจากโทนอะไร ถ้าจะแก้เสียงให้แก้ที่นี่ |
+| `previewSound(type, volumePercent, isMention)` | เล่นเสียงทันที ใช้กับปุ่มทดลองเสียง |
+| `playSound(kind)` | เล่นเสียงตามการตั้งค่าของผู้ใช้ (`sound`, `soundType`, `volume`) ถ้า `kind` เป็น `'mention'` จะดัง 2 ครั้ง |
+
+แต่ละเสียงทำจากอะไร
+- ติ๊ง: 880 Hz ยาว 0.25 วินาที
+- ป๊อป: ลดจาก 700 Hz ลงไป 180 Hz
+- กระดิ่ง: 660 Hz กับ 1320 Hz พร้อมกัน แล้วค่อยๆ เบาลง
+- กริ๊ง: 784 Hz แล้วต่อด้วย 1047 Hz
+
+เล่นเสียงตอนไหน
+- `useMessageAlerts.js`: ข้อความใหม่ (DM, แชทกลุ่ม, ได้รับมอบหมายงาน, ข้อความใน Channel ถ้าเปิดไว้) ถ้าถูกแท็กเรียก `playSound('mention')`
+- `useNotifications.js`: แจ้งเตือนใหม่ทุกประเภท เช่น ตอบในเธรด งานใกล้ครบกำหนด นัดวันนี้ VIP
+
+ไม่เล่นเสียงเมื่อ สถานะเป็น "ไม่ว่าง", ห้องถูกปิดเสียง, ข้อความจากคนที่บล็อก, หรือเปิดห้องนั้นดูอยู่
+`playSound` จะไม่เล่นซ้ำภายใน 0.4 วินาที เพราะบางเหตุการณ์ (เช่นถูกแท็ก) ได้ทั้งข้อความและแจ้งเตือนพร้อมกัน
+
+ค่าที่บันทึก: `settings.soundType` และ `settings.volume` (0–100) เก็บใน localStorage และในคอลัมน์ `users.settings` (JSONB)
+
+ข้อควรรู้: เบราว์เซอร์ไม่ยอมเล่นเสียงจนกว่าผู้ใช้จะคลิกหน้าเว็บอย่างน้อย 1 ครั้ง
+
+ถ้าอยากใช้ไฟล์เสียงจริง วางไฟล์ที่ `frontend/public/sounds/` แล้วเล่นด้วย
+```js
+const sound = new Audio('/sounds/ding.mp3');
+sound.volume = volumePercent / 100;
+sound.play();
+```
+
 ---
 
 ## 11. ระบบสิทธิ์
@@ -963,7 +999,7 @@ frontend ใช้ฟังก์ชันชุดเดียวกันเ�
 | รหัสผ่าน | แฮชด้วย bcrypt ไม่เก็บรหัสจริง |
 | Token | สุ่ม 32 byte เก็บในฐานข้อมูลเป็นแฮช SHA-256 ถ้าฐานข้อมูลหลุดก็เอา token ไปใช้ไม่ได้ อายุ 30 วัน |
 | เดารหัสผ่าน | ผิด 5 ครั้งใน 15 นาที ล็อกชั่วคราว (ทั้ง login และรีเซ็ตรหัส) |
-| ปลอมตัวเป็นคนอื่น | backend รู้ว่าใครเป็นคนส่งจาก token เท่านั้น ไม่เชื่อ userId ที่หน้าเว็บส่งมา (`requireAuth` เขียนทับ `userId` ใน body และ query) |
+| ปลอมตัวเป็นคนอื่น | backend รู้ว่าใครเป็นคนส่งจาก token เท่านั้น ทุก controller ใช้ `req.userId` ที่ `requireAuth` ใส่ให้ ไม่อ่าน userId จากสิ่งที่หน้าเว็บส่งมาเลย |
 | แก้ข้อมูลคนอื่น | `requireSelf` และการเช็คสิทธิ์ทุก controller |
 | SQL Injection | ใช้ `$1, $2` (parameterized query) ทุกที่ ส่วนชื่อคอลัมน์ที่ต่อเข้า SQL ต้องอยู่ใน `PLACE_COLUMNS` |
 | XSS | React escape ข้อความให้เอง และ `MessageText` สร้าง element เองไม่ใช้ HTML ดิบ |
