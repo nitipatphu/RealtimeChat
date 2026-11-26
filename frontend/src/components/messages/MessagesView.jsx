@@ -180,8 +180,9 @@ export default function MessagesView({
             const count = (mutedRooms || []).includes(key) ? 0 : unread[key];
             const isDm = item.type === 'dm';
             const user = isDm ? (users || []).find(u => u.id === item.id) : null;
-            let title = chatTitle(item);
-            if (isDm) title = user ? user.name : 'ผู้ใช้';
+            let title = 'ผู้ใช้';
+            if (isDm && user) title = user.name;
+            if (!isDm) title = chatTitle(item);
             let preview = 'ยังไม่มีข้อความ';
             if (item.lastMessage) {
               preview = item.lastMessage.text;
