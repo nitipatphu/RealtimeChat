@@ -39,16 +39,7 @@ docker compose up -d --build
 - mint@test.com (ผู้ใช้ทั่วไป)
 - beam@test.com (ผู้ใช้ทั่วไป)
 
-## เปิดให้คนอื่นเข้าเว็บได้ (ฟรี ไม่ต้องมีโดเมน)
-ลงโปรแกรมครั้งเดียว
-```
-winget install Cloudflare.cloudflared
-```
-เปิด Docker ไว้ แล้วสั่ง
-```
-cloudflared tunnel --url http://localhost:5173
-```
-จะได้ลิงก์ `https://xxxx.trycloudflare.com` ส่งให้เพื่อนเข้าได้เลย (ลิงก์เปลี่ยนทุกครั้งที่เปิดใหม่ และต้องเปิดคอมไว้)
+
 
 ## ปิดเว็บ
 ```
@@ -83,6 +74,4 @@ frontend/   หน้าเว็บ (React)
 backend/    API กับ Socket.io
 backend/database/schema.sql     โครงสร้างตาราง
 backend/database/database.sql   ข้อมูลทั้งหมด
-Docs.md                         อธิบายโค้ดทั้งหมด
-Diagram.md                      Flowchart และ ER Diagram
 ```
