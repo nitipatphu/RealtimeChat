@@ -5,6 +5,7 @@ import Button, { IconButton } from '../ui/Button';
 import Icon from '../ui/Icon';
 import { Field, inputClass, ErrorBox } from '../ui/Form';
 import { formatDateTime } from '../../utils/format';
+import { showError } from '../../utils/dialog';
 
 function toInputValue(date) {
   const pad = (n) => String(n).padStart(2, '0');
@@ -71,7 +72,7 @@ export default function ScheduleModal({ text, currentUser, target, targetName, o
       await apiSend('DELETE', '/scheduled/' + item.id);
       setReloadKey(reloadKey + 1);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 

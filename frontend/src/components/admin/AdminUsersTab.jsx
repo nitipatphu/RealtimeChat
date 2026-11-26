@@ -8,6 +8,7 @@ import Modal from '../ui/Modal';
 import { Field, ErrorBox, inputClass, inputBaseClass } from '../ui/Form';
 import { isAdminUser } from '../../utils/permissions';
 import { formatDate, timeAgo } from '../../utils/format';
+import { askConfirm, askText } from '../../utils/dialog';
 
 function UserFormModal({ user, onClose, onSaved }) {
   const [name, setName] = useState(user ? user.name : '');
@@ -127,19 +128,21 @@ export default function AdminUsersTab({ currentUser, showSaved }) {
     }
   };
 
-  const toggleSuspend = (user) => {
+  const toggleSuspend = async (user) => {
     if (user.accountStatus === 'active') {
-      const reason = window.prompt('เหตุผลในการระงับบัญชี ' + user.name, '');
+      const reason = await askText('เหตุผลในการระงับบัญชี ' + user.name, '');
       if (reason === null) return;
       run(() => apiSend('PUT', '/admin/users/' + user.id + '/status', { status: 'suspended', reason: reason }));
     } else {
-      if (!window.confirm('ยกเลิกการระงับบัญชี ' + user.name + '?')) return;
+      const confirmed = await askConfirm('ยกเลิกการระงับบัญชี ' + user.name + '?');
+      if (!confirmed) return;
       run(() => apiSend('PUT', '/admin/users/' + user.id + '/status', { status: 'active' }));
     }
   };
 
-  const deleteUser = (user) => {
-    if (!window.confirm('ลบบัญชี ' + user.name + ' (' + user.email + ') ถาวร?')) return;
+  const deleteUser = async (user) => {
+    const confirmed = await askConfirm('ลบบัญชี ' + user.name + ' (' + user.email + ') ถาวร?');
+    if (!confirmed) return;
     run(() => apiSend('DELETE', '/admin/users/' + user.id));
   };
 

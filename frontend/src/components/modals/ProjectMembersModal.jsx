@@ -5,6 +5,7 @@ import Button from '../ui/Button';
 import Avatar from '../ui/Avatar';
 import { ErrorBox, inputClass } from '../ui/Form';
 import { getMemberIds, getDisplayName } from '../../utils/permissions';
+import { askConfirm } from '../../utils/dialog';
 
 export default function ProjectMembersModal({ group, project, users, onClose, onUpdateProject }) {
   const [loading, setLoading] = useState(false);
@@ -34,7 +35,8 @@ export default function ProjectMembersModal({ group, project, users, onClose, on
   };
 
   const handleRemove = async (memberId) => {
-    if (!window.confirm('ยืนยันการนำสมาชิกออกจาก Project?')) return;
+    const confirmed = await askConfirm('ยืนยันการนำสมาชิกออกจาก Project?');
+    if (!confirmed) return;
     setLoading(true);
     setError('');
     try {

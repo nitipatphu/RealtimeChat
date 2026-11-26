@@ -17,14 +17,16 @@ import {
   getLogs,
   getMyWork,
   getTeam,
-  setSystemRole
+  setSystemRole,
+  getUsage
 } from '../controllers/adminController.js';
-import { getVipOverview, grantVip, revokeVip, createVipCode, deleteVipCode, updateTierSettings } from '../controllers/vipController.js';
+import { getVipOverview, grantVip, revokeVip, createVipCode, deleteVipCode, createTier, updateTier, moveTier, deleteTier } from '../controllers/vipController.js';
 
 const router = express.Router();
 
 router.get('/stats', requireAdmin, getStats);
 router.get('/my-work', requireStaff, getMyWork);
+router.get('/usage', requireStaff, getUsage);
 router.get('/team', requireAdmin, getTeam);
 
 router.get('/users', requireStaff, getUsers);
@@ -46,7 +48,10 @@ router.delete('/groups/:id', requireAdmin, deleteGroup);
 router.get('/logs', requireStaff, getLogs);
 
 router.get('/vip', requireStaff, getVipOverview);
-router.put('/vip-settings', requireAdmin, updateTierSettings);
+router.post('/vip-tiers', requireAdmin, createTier);
+router.put('/vip-tiers/:tier', requireAdmin, updateTier);
+router.put('/vip-tiers/:tier/move', requireAdmin, moveTier);
+router.delete('/vip-tiers/:tier', requireAdmin, deleteTier);
 router.put('/users/:id/vip', requireStaff, grantVip);
 router.delete('/users/:id/vip', requireStaff, revokeVip);
 router.post('/vip-codes', requireStaff, createVipCode);

@@ -7,6 +7,7 @@ import { PRESENCE, PRESENCE_ORDER } from '../../utils/presence';
 import { SystemRoleBadge } from '../ui/Badge';
 import { Field, ErrorBox, inputClass, textareaClass } from '../ui/Form';
 import { ROLE_COLORS } from '../../utils/permissions';
+import { askConfirm } from '../../utils/dialog';
 
 function ProfilePreview({ user, name, title, bio, bannerColor }) {
   const presence = user.presence || 'online';
@@ -85,7 +86,8 @@ export default function ProfileTab({ currentUser, onUserUpdated, showSaved }) {
   };
 
   const handleRemoveAvatar = async () => {
-    if (!window.confirm('ลบรูปโปรไฟล์และใช้รูปตัวอักษรแทน?')) return;
+    const confirmed = await askConfirm('ลบรูปโปรไฟล์และใช้รูปตัวอักษรแทน?');
+    if (!confirmed) return;
     try {
       const data = await apiSend('DELETE', '/users/' + currentUser.id + '/avatar');
       onUserUpdated(data.user);

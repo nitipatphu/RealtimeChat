@@ -7,8 +7,9 @@ import Button, { IconButton } from '../ui/Button';
 import { SystemRoleBadge, VipBadge } from '../ui/Badge';
 import { getMemberRole, getNickname, isGroupMember } from '../../utils/permissions';
 import { formatDate } from '../../utils/format';
-import { vipNameClass } from '../../utils/vip';
+import { vipNameStyle } from '../../utils/vip';
 import { useCloseOnBack } from '../../utils/backButton';
+import { askConfirm } from '../../utils/dialog';
 
 export default function UserProfileModal({ user, group, currentUser, status, onClose, onMessage, onEditProfile, isBlocked, onToggleBlock }) {
   useCloseOnBack(onClose);
@@ -41,7 +42,7 @@ export default function UserProfileModal({ user, group, currentUser, status, onC
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className={`text-xl font-semibold ${vipNameClass(user) || 'text-slate-900'}`}>{nickname || user.name}</h3>
+            <h3 className="text-xl font-semibold text-slate-900" style={vipNameStyle(user)}>{nickname || user.name}</h3>
             <VipBadge user={user} />
             {user.systemRole !== 'member' && <SystemRoleBadge systemRole={user.systemRole} />}
           </div>
@@ -85,8 +86,11 @@ export default function UserProfileModal({ user, group, currentUser, status, onC
                   variant="secondary"
                   icon="ban"
                   className={isBlocked ? 'flex-1' : ''}
-                  onClick={() => {
-                    if (!isBlocked && !window.confirm('บล็อก ' + user.name + '?' + String.fromCharCode(10) + 'ข้อความของเขาจะถูกซ่อน และเขาส่ง DM หาคุณไม่ได้')) return;
+                  onClick={async () => {
+                    if (!isBlocked) {
+                      const confirmed = await askConfirm('บล็อก ' + user.name + '? ข้อความของเขาจะถูกซ่อน และเขาส่ง DM หาคุณไม่ได้');
+                      if (!confirmed) return;
+                    }
                     onToggleBlock(!isBlocked);
                   }}
                 >

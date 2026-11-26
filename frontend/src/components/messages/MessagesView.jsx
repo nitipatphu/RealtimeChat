@@ -10,6 +10,7 @@ import Button, { IconButton } from '../ui/Button';
 import { EmptyState } from '../ui/Card';
 import { getPresence, PRESENCE } from '../../utils/presence';
 import { timeAgo } from '../../utils/format';
+import { showError, askConfirm, askText } from '../../utils/dialog';
 
 function StackedAvatars({ ids, users }) {
   const people = ids.map(id => (users || []).find(u => u.id === id)).filter(u => u).slice(0, 2);
@@ -98,24 +99,25 @@ export default function MessagesView({
   };
 
   const renameChat = async () => {
-    const newName = window.prompt('ตั้งชื่อแชทกลุ่ม', activeChat.name || '');
+    const newName = await askText('ตั้งชื่อแชทกลุ่ม', activeChat.name || '');
     if (newName === null) return;
     try {
       await apiSend('PUT', '/conversations/' + activeChat.id, { name: newName });
       setReloadKey(key => key + 1);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
   const leaveChat = async () => {
-    if (!window.confirm('ออกจากแชทกลุ่มนี้?')) return;
+    const confirmed = await askConfirm('ออกจากแชทกลุ่มนี้?');
+    if (!confirmed) return;
     try {
       await apiSend('POST', '/conversations/' + activeChat.id + '/leave', {});
       onSelectTarget(null);
       setReloadKey(key => key + 1);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 

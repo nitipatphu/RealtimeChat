@@ -8,6 +8,7 @@ import ChatInput from '../chat/ChatInput';
 import LoadOlderButton from '../chat/LoadOlderButton';
 import ThreadPanel from '../chat/ThreadPanel';
 import { mergeMessages, getOldestTime, getLastId } from '../../utils/messages';
+import { showError, askConfirm } from '../../utils/dialog';
 
 export default function GroupChatView({ chat, currentUser, users, onOpenProfile }) {
   const [messages, setMessages] = useState([]);
@@ -76,7 +77,7 @@ export default function GroupChatView({ chat, currentUser, users, onOpenProfile 
       setMessages(prev => mergeMessages(prev, data.messages));
       setHasMore(data.hasMore);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     } finally {
       setLoadingOlder(false);
     }
@@ -88,7 +89,7 @@ export default function GroupChatView({ chat, currentUser, users, onOpenProfile 
       saveLocally(data);
       return true;
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
       return false;
     }
   };
@@ -99,19 +100,20 @@ export default function GroupChatView({ chat, currentUser, users, onOpenProfile 
       saveLocally(data);
       return true;
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
       return false;
     }
   };
 
   const deleteMessage = async (msgId) => {
-    if (!window.confirm('ยืนยันการลบข้อความนี้?')) return;
+    const confirmed = await askConfirm('ยืนยันการลบข้อความนี้?');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', url + '/' + msgId);
       setMessages(prev => prev.filter(m => m.id !== msgId && m.parentId !== msgId));
       if (activeThreadId === msgId) setActiveThreadId(null);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -120,7 +122,7 @@ export default function GroupChatView({ chat, currentUser, users, onOpenProfile 
       const data = await apiSend('POST', url + '/' + msgId + '/reactions', { emoji: emoji });
       saveLocally(data);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 

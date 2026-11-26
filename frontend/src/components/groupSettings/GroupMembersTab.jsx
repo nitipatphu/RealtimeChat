@@ -11,6 +11,7 @@ import { formatDate } from '../../utils/format';
 import { Field, ErrorBox, inputClass, inputBaseClass } from '../ui/Form';
 import { hasPermission, getNickname, getMemberIds, getTimeoutUntil } from '../../utils/permissions';
 import { getPresence } from '../../utils/presence';
+import { showError, askConfirm } from '../../utils/dialog';
 
 function NicknameModal({ group, member, currentUser, onClose, showSaved }) {
   const [nickname, setNickname] = useState(getNickname(group, member.id));
@@ -65,7 +66,7 @@ export default function GroupMembersTab({ group, currentUser, users, onlineUserI
     try {
       await apiSend('DELETE', '/groups/' + group.id + '/bans/' + memberId);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -100,7 +101,8 @@ export default function GroupMembersTab({ group, currentUser, users, onlineUserI
 
 
   const handleKick = async (member) => {
-    if (!window.confirm('นำ ' + member.name + ' ออกจากกลุ่ม?')) return;
+    const confirmed = await askConfirm('นำ ' + member.name + ' ออกจากกลุ่ม?');
+    if (!confirmed) return;
     setError('');
     try {
       await apiSend('DELETE', '/groups/' + group.id + '/members/' + member.id, {});

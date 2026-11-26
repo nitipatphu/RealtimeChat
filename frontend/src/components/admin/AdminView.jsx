@@ -6,10 +6,12 @@ import AdminGroupsTab from './AdminGroupsTab';
 import AdminLogsTab from './AdminLogsTab';
 import AdminTeamTab from './AdminTeamTab';
 import AdminVipTab from './AdminVipTab';
+import UsageTab from './UsageTab';
 
 export default function AdminView({ currentUser, tab, onChangeTab, showSaved, onInspectGroup }) {
   const tabs = [
     { id: 'stats', icon: 'chart', label: 'ภาพรวมระบบ' },
+    { id: 'usage', icon: 'clock', label: 'สถานะการใช้งาน' },
     { id: 'users', icon: 'users', label: 'บัญชีผู้ใช้' },
     { id: 'groups', icon: 'grid', label: 'กลุ่ม' },
     { id: 'vip', icon: 'sparkles', label: 'VIP' },
@@ -33,6 +35,7 @@ export default function AdminView({ currentUser, tab, onChangeTab, showSaved, on
         <Tabs tabs={tabs} value={activeTab} onChange={onChangeTab} />
 
         {activeTab === 'stats' && <AdminStatsTab currentUser={currentUser} onGoTo={onChangeTab} />}
+        {activeTab === 'usage' && <UsageTab currentUser={currentUser} />}
         {activeTab === 'users' && <AdminUsersTab currentUser={currentUser} showSaved={showSaved} />}
         {activeTab === 'groups' && <AdminGroupsTab currentUser={currentUser} showSaved={showSaved} onInspectGroup={onInspectGroup} />}
         {activeTab === 'team' && <AdminTeamTab currentUser={currentUser} showSaved={showSaved} />}

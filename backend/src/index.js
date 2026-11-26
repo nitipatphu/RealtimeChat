@@ -7,6 +7,8 @@ import { startScheduler } from './utils/scheduler.js';
 import { checkConnection } from './config/database.js';
 import { findSessionUser } from './middlewares/authMiddleware.js';
 import { getOne } from './config/database.js';
+import { createUsageTables, recordUsage } from './utils/usage.js';
+import { updateTierTable } from './utils/vip.js';
 
 dotenv.config();
 
@@ -14,10 +16,12 @@ const PORT = process.env.PORT || 4000;
 const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim()).filter(o => o);
 
 const server = http.createServer(app);
+server.requestTimeout = 30 * 60 * 1000;
 const io = new Server(server, { cors: { origin: allowedOrigins.length > 0 ? allowedOrigins : true } });
 app.set('io', io);
 
 const onlineUsers = {};
+app.set('onlineUsers', onlineUsers);
 
 function sendOnlineUsers() {
   io.emit('online-users', Object.keys(onlineUsers));
@@ -67,6 +71,7 @@ io.on('connection', (socket) => {
       socket.join('user:' + user.id);
       onlineUsers[user.id] = (onlineUsers[user.id] || 0) + 1;
       sendOnlineUsers();
+      recordUsage(user.id, Object.keys(onlineUsers).length).catch(error => console.log('usage error:', error.message));
     } catch (error) {
       console.log('socket identify error:', error.message);
     }
@@ -113,8 +118,10 @@ io.on('connection', (socket) => {
 });
 
 checkConnection()
-  .then((name) => {
+  .then(async (name) => {
     console.log('เชื่อมต่อ PostgreSQL สำเร็จ: ' + name);
+    await createUsageTables();
+    await updateTierTable();
     startReminders(app);
     startScheduler(app);
     server.listen(PORT, () => {

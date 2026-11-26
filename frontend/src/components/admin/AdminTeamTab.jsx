@@ -7,6 +7,7 @@ import { SystemRoleBadge } from '../ui/Badge';
 import { ErrorBox } from '../ui/Form';
 import UserPicker from '../ui/UserPicker';
 import { timeAgo } from '../../utils/format';
+import { askConfirm } from '../../utils/dialog';
 
 export default function AdminTeamTab({ currentUser, showSaved }) {
   const [data, setData] = useState(null);
@@ -21,7 +22,8 @@ export default function AdminTeamTab({ currentUser, showSaved }) {
   }, [currentUser.id, reloadKey]);
 
   const changeRole = async (user, systemRole, question) => {
-    if (!window.confirm(question)) return;
+    const confirmed = await askConfirm(question);
+    if (!confirmed) return;
     setError('');
     try {
       await apiSend('PUT', '/admin/users/' + user.id + '/system-role', { systemRole: systemRole });

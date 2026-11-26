@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { apiSend } from '../../api';
 import Icon from '../ui/Icon';
 import { getMemberRoles, hasPermission } from '../../utils/permissions';
+import { showError } from '../../utils/dialog';
 
 export default function MemberRolesEditor({ group, memberId, currentUser }) {
   const [showMenu, setShowMenu] = useState(false);
@@ -30,7 +31,7 @@ export default function MemberRolesEditor({ group, memberId, currentUser }) {
     try {
       await apiSend('PUT', '/groups/' + group.id + '/members/' + memberId + '/role', { roleId: roleId, assigned: assigned });
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     } finally {
       setSaving(false);
     }

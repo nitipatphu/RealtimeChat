@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict TWLLhxv8RQuLmEebGU8sgjhUaexg464G8izonzZiFWAUSkNnY03AsFbYTjpM8a5
+\restrict R9VOHKUmXVNwhOlqKsVIEbYyV70kIcTyvr0WzxkX5YjNsFIar9nK4VDa3cNQSUl
 
 -- Dumped from database version 17.12
 -- Dumped by pg_dump version 17.12
@@ -138,6 +138,27 @@ CREATE TABLE public.conversations (
     owner_id text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT conversations_type_check CHECK ((type = ANY (ARRAY['dm'::text, 'group'::text])))
+);
+
+
+--
+-- Name: daily_active_users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.daily_active_users (
+    day date NOT NULL,
+    user_id text NOT NULL
+);
+
+
+--
+-- Name: daily_peak_online; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.daily_peak_online (
+    day date NOT NULL,
+    peak integer DEFAULT 0 NOT NULL,
+    peak_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -532,8 +553,11 @@ CREATE TABLE public.tier_settings (
     file_mb integer NOT NULL,
     preset_themes text[] DEFAULT '{}'::text[] NOT NULL,
     custom_theme boolean DEFAULT false NOT NULL,
-    CONSTRAINT tier_settings_file_mb_check CHECK (((file_mb >= 1) AND (file_mb <= 100))),
-    CONSTRAINT tier_settings_tier_check CHECK ((tier = ANY (ARRAY['none'::text, 'vip'::text, 'supervip'::text])))
+    name text DEFAULT ''::text NOT NULL,
+    icon text DEFAULT ''::text NOT NULL,
+    color text DEFAULT '#6366f1'::text NOT NULL,
+    rank integer DEFAULT 1 NOT NULL,
+    CONSTRAINT tier_settings_file_mb_check CHECK (((file_mb >= 1) AND (file_mb <= 1000)))
 );
 
 
@@ -561,8 +585,7 @@ CREATE TABLE public.user_vip (
     granted_by text,
     source text NOT NULL,
     warned_for timestamp with time zone,
-    CONSTRAINT user_vip_source_check CHECK ((source = ANY (ARRAY['admin'::text, 'code'::text]))),
-    CONSTRAINT user_vip_tier_check CHECK ((tier = ANY (ARRAY['vip'::text, 'supervip'::text])))
+    CONSTRAINT user_vip_source_check CHECK ((source = ANY (ARRAY['admin'::text, 'code'::text])))
 );
 
 
@@ -619,8 +642,7 @@ CREATE TABLE public.vip_codes (
     created_by text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT vip_codes_days_check CHECK (((days >= 1) AND (days <= 3650))),
-    CONSTRAINT vip_codes_max_uses_check CHECK (((max_uses >= 1) AND (max_uses <= 1000))),
-    CONSTRAINT vip_codes_tier_check CHECK ((tier = ANY (ARRAY['vip'::text, 'supervip'::text])))
+    CONSTRAINT vip_codes_max_uses_check CHECK (((max_uses >= 1) AND (max_uses <= 1000)))
 );
 
 
@@ -655,6 +677,31 @@ alog-11235	vip_grant	u-staff	Staff ให้ VIP กับ ตี๋ แซ่�
 alog-11239	vip_grant	u-staff	Staff ให้ VIP กับ โอ๊ต ธัญพืช	2026-10-19 16:07:36+07
 alog-11234	vip_grant	u-staff	Staff ให้ VIP กับ แฮม อร่อยดี	2026-10-15 11:02:31+07
 alog-11230	vip_grant	u-admin	Admin ให้ SUPER VIP กับ ก้อง กังวาน	2026-09-28 17:41:35+07
+alog-1795670842233-0f00d72c	group_inspect	u-admin	Admin เข้าดูกลุ่ม ทีม Data & AI ในโหมดตรวจสอบ	2026-11-26 12:27:22.233292+07
+alog-1795670849984-fa5e3c0f	group_inspect	u-admin	Admin เข้าดูกลุ่ม ทีมโปรเจกต์จบ ในโหมดตรวจสอบ	2026-11-26 12:27:29.98495+07
+alog-1795671511086-64ead49d	user_update	u-admin	Admin เปลี่ยนสิทธิ์ระบบของ ต้น วงศ์ทอง จาก Member เป็น Staff	2026-11-26 12:38:31.086342+07
+alog-1795671511915-24829cd5	user_update	u-admin	Admin เปลี่ยนสิทธิ์ระบบของ ต้น วงศ์ทอง จาก Staff เป็น Member	2026-11-26 12:38:31.9151+07
+alog-1795671574810-3c33b80e	user_update	u-admin	Admin เปลี่ยนสิทธิ์ระบบของ ต้น วงศ์ทอง จาก Member เป็น Staff	2026-11-26 12:39:34.810462+07
+alog-1795671575640-b6269248	user_update	u-admin	Admin เปลี่ยนสิทธิ์ระบบของ ต้น วงศ์ทอง จาก Staff เป็น Member	2026-11-26 12:39:35.641049+07
+alog-1795671665133-62e4611f	user_suspend	u-admin	Admin ระงับบัญชี กิ๊ฟ ชัยมงคล	2026-11-26 12:41:05.133905+07
+alog-1795671677852-a632f2b5	user_activate	u-admin	Admin ยกเลิกการระงับบัญชี กิ๊ฟ ชัยมงคล	2026-11-26 12:41:17.853021+07
+alog-1795672000353-3b4bc02f	vip_code	u-admin	Admin สร้างรหัส SUPER VIP 7 วัน (VIP-98MD-TVQ6, ใช้ได้ 1 ครั้ง)	2026-11-26 12:46:40.353824+07
+alog-1795672021507-e5f66d3a	vip_redeem	u-1795671066171	kaotu ใช้รหัส VIP-98MD-TVQ6 ได้ SUPER VIP 7 วัน	2026-11-26 12:47:01.506308+07
+alog-1795672112147-48153d0f	user_update	u-admin	Admin แก้ไขบัญชี kaotu: สิทธิ์ระบบเป็น Staff	2026-11-26 12:48:32.148007+07
+alog-1795672162683-48f7335b	user_update	u-admin	Admin แก้ไขบัญชี BAS: สิทธิ์ระบบเป็น Staff	2026-11-26 12:49:22.683597+07
+alog-1795672167903-041c06eb	user_update	u-admin	Admin แก้ไขบัญชี BAS: สิทธิ์ระบบเป็น Member	2026-11-26 12:49:27.904006+07
+alog-1795672199899-3ded6829	user_update	u-admin	Admin แก้ไขบัญชี BAS: สิทธิ์ระบบเป็น Staff	2026-11-26 12:49:59.899931+07
+alog-1795672826986-6c6310a5	vip_settings	u-admin	Admin สร้างระดับ VIP ใหม่ GOLD (80 MB)	2026-11-26 13:00:26.986216+07
+alog-1795672827001-9cbbe812	vip_grant	u-admin	Admin ให้ GOLD กับ ต้น วงศ์ทอง 7 วัน (หมดอายุ 3/12/2569)	2026-11-26 13:00:27.001816+07
+alog-1795672827027-362bdabf	vip_revoke	u-admin	Admin ยกเลิก GOLD ของ ต้น วงศ์ทอง	2026-11-26 13:00:27.027969+07
+alog-1795672827034-bfef33df	vip_code	u-admin	Admin สร้างรหัส GOLD 3 วัน (VIP-3299-WJA4, ใช้ได้ 1 ครั้ง)	2026-11-26 13:00:27.034156+07
+alog-1795672827037-8d57fc11	vip_settings	u-admin	Admin ลบระดับ VIP GOLD	2026-11-26 13:00:27.037932+07
+alog-1795673008744-c1435451	vip_settings	u-admin	Admin แก้ไขระดับ SUPER VIP (1000 MB)	2026-11-26 13:03:28.744882+07
+alog-1795673008756-51d3e1aa	vip_settings	u-admin	Admin แก้ไขระดับ SUPER VIP (50 MB)	2026-11-26 13:03:28.756909+07
+alog-1795673060459-8476516c	vip_settings	u-admin	Admin สร้างระดับ VIP ใหม่ GOD (10 MB)	2026-11-26 13:04:20.459639+07
+alog-1795673065725-a6de864c	vip_settings	u-admin	Admin แก้ไขระดับ GOD (1000 MB)	2026-11-26 13:04:25.726091+07
+alog-1795673070524-76771af7	vip_settings	u-admin	Admin แก้ไขระดับ GOD (1000 MB)	2026-11-26 13:04:30.524329+07
+alog-1795673084536-d56845fc	vip_grant	u-admin	Admin ให้ GOD กับ BAS 365 วัน (หมดอายุ 26/11/2570)	2026-11-26 13:04:44.536668+07
 \.
 
 
@@ -759,6 +806,9 @@ g-6893-p2-todo	g-6893-p2	To Do	0
 g-6893-p2-doing	g-6893-p2	Doing	1
 g-6893-p2-review	g-6893-p2	Review	2
 g-6893-p2-done	g-6893-p2	Done	3
+col-0-p-1795671180643-1dyb	p-1795671180643-1dyb	To Do	0
+col-1-p-1795671180643-1dyb	p-1795671180643-1dyb	Doing	1
+col-2-p-1795671180643-1dyb	p-1795671180643-1dyb	Done	2
 \.
 
 
@@ -924,6 +974,7 @@ clip-11283	u-first	เลขบัญชีเก็บเงิน	โอนค
 clip-11284	u-first	คำตอบที่ใช้บ่อย	โอนค่ากิจกรรมได้ที่ 123-4-56789-0 นะ	f		2026-11-12 15:08:39+07	2026-11-26 12:13:12+07
 clip-11285	u-first	คำตอบที่ใช้บ่อย	ขอบคุณที่ติดต่อมา เดี๋ยวตอบกลับภายในวันนี้	f		2026-11-24 08:18:20+07	2026-11-26 13:37:15+07
 clip-11286	u-donut	ลิงก์ประชุม	https://meet.example.com/team-660	f		2026-11-15 09:08:08+07	2026-11-25 14:36:38+07
+clip-1795671535830-2c9e238a	u-1795671066171	ขายSeed growtopia	sell Seed chandelier rate 200/100 bath\n\nsugar cane rate200/60\n\npromtpay 0100013010	f		2026-11-26 12:38:55.830187+07	2026-11-26 12:38:55.830187+07
 \.
 
 
@@ -1189,6 +1240,10 @@ gdm-11079	u-pang	2026-11-26 03:17:07.734439+07
 gdm-11079	u-palm	2026-11-26 03:17:07.734439+07
 gdm-11079	u-gift	2026-11-26 03:17:07.734439+07
 gdm-11079	u-ohm	2026-11-26 03:17:07.734439+07
+dm-u-1795671066171__u-gift	u-gift	2026-11-26 12:32:52.473528+07
+dm-u-1795671066171__u-gift	u-1795671066171	2026-11-26 12:32:52.473528+07
+dm-u-1795671065821__u-1795671066171	u-1795671065821	2026-11-26 12:51:53.171177+07
+dm-u-1795671065821__u-1795671066171	u-1795671066171	2026-11-26 12:51:53.171177+07
 \.
 
 
@@ -1312,6 +1367,32 @@ gdm-10726	group	ไปเที่ยวกัน	u-nan	2026-11-07 09:15:00+07
 gdm-10833	group	สายกาแฟ	u-art	2026-10-19 17:20:22+07
 gdm-10969	group	ห้องลับ	u-mai	2026-10-29 17:06:21+07
 gdm-11079	group	ทีมทำรายงาน	u-tong	2026-10-28 10:39:55+07
+dm-u-1795671066171__u-gift	dm	\N	\N	2026-11-26 12:32:52.473528+07
+dm-u-1795671065821__u-1795671066171	dm	\N	\N	2026-11-26 12:51:53.171177+07
+\.
+
+
+--
+-- Data for Name: daily_active_users; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.daily_active_users (day, user_id) FROM stdin;
+2026-11-26	u-gift
+2026-11-26	u-film
+2026-11-26	u-admin
+2026-11-26	u-1795671066171
+2026-11-26	u-ton
+2026-11-26	u-mint
+2026-11-26	u-1795671065821
+\.
+
+
+--
+-- Data for Name: daily_peak_online; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.daily_peak_online (day, peak, peak_at) FROM stdin;
+2026-11-26	6	2026-11-26 12:44:26.740292+07
 \.
 
 
@@ -1389,6 +1470,7 @@ INV008	g-4826	u-ice	2026-11-24 18:27:31+07	2026-12-03 03:17:07.522+07	20	5
 INV010	g-5510	u-pun	2026-11-24 16:03:05+07	2026-12-03 03:17:07.522+07	20	1
 INV011	g-6052	u-dew	2026-11-24 18:27:23+07	2026-12-03 03:17:07.522+07	20	5
 INV013	g-6893	u-ice	2026-11-24 22:02:18+07	2026-12-03 03:17:07.522+07	20	2
+NFZQUR	g-4596	u-ton	2026-11-26 12:29:31.110604+07	2026-11-27 12:29:31.11+07	1	1
 \.
 
 
@@ -1791,6 +1873,11 @@ glog-7185	g-6893	member_join	u-mint	มิ้นท์ ศรีสวัสด�
 glog-7184	g-6893	member_join	u-earth	เอิร์ธ มั่นคง เข้าร่วมกลุ่ม	2026-09-09 20:44:15+07
 glog-7187	g-6893	member_join	u-fah	ฟ้า รุ่งเรือง เข้าร่วมกลุ่ม	2026-08-29 09:47:47+07
 glog-7180	g-6893	group_create	u-ice	ไอซ์ เย็นใจ สร้างกลุ่ม ทีมโปรเจกต์จบ	2026-08-14 19:37:35+07
+glog-1795670971111-bab54bb5	g-4596	invite_create	u-ton	ต้น วงศ์ทอง สร้างลิงก์เชิญ NFZQUR	2026-11-26 12:29:31.111625+07
+glog-1795670995748-b4dfc166	g-4596	member_join	u-admin	Admin เข้าร่วมกลุ่มด้วยลิงก์เชิญ NFZQUR	2026-11-26 12:29:55.748533+07
+glog-1795671038632-8f80a025	g-4596	member_leave	u-admin	Admin ออกจากกลุ่ม	2026-11-26 12:30:38.631591+07
+glog-1795671109570-8a4f9966	g-2900	member_join	u-1795671066171	kaotu เข้าร่วมกลุ่ม (Public)	2026-11-26 12:31:49.570711+07
+glog-1795671180644-5a9c9631	g-2900	project_create	u-1795671066171	kaotu สร้าง Project ออกแบบร้านเกม	2026-11-26 12:33:00.64292+07
 \.
 
 
@@ -2105,6 +2192,7 @@ g-6893	u-mint	มิ้นท์ ตัวตึง	\N	2026-11-26 03:17:07.73443
 g-6893	u-beam	\N	\N	2026-11-26 03:17:07.734439+07
 g-6893	u-fah	\N	\N	2026-11-26 03:17:07.734439+07
 g-6893	u-ton	\N	\N	2026-11-26 03:17:07.734439+07
+g-2900	u-1795671066171	\N	\N	2026-11-26 12:31:49.569632+07
 \.
 
 
@@ -2308,6 +2396,8 @@ g-6893	u-earth	g-6893-custom
 --
 
 COPY public.message_attachments (id, message_id, url, name, type, size) FROM stdin;
+1	dmm-1795672325481-dec26af4	/uploads/files/1795672323592-6d0751d881df628918cbe4ab1b2daa32.pdf	ตารางเรียน รหัส 67 ภาค 2-2569-1 (1).pdf	application/pdf	342353
+2	dmm-1795672340147-b8a28afa	/uploads/files/1795672336132-ccb93eab58fc3db8b06b02c86f34e9db.jpg	test.jpg	image/jpeg	170810
 \.
 
 
@@ -9500,6 +9590,7 @@ m-1466	\N	g-1001-p0-chat	\N	\N	u-kaew	แก้ว ใสสะอาด	https:/
 m-1467	\N	g-1001-p0-chat	\N	\N	u-fah	ฟ้า รุ่งเรือง	https://ui-avatars.com/api/?name=%E0%B8%9F%E0%B9%89%E0%B8%B2%20%E0%B8%A3%E0%B8%B8%E0%B9%88%E0%B8%87%E0%B9%80%E0%B8%A3%E0%B8%B7%E0%B8%AD%E0%B8%87&background=random	รับเอง	f	\N	\N	\N	f	2026-11-22 11:59:56+07
 m-1468	\N	g-1001-p0-chat	\N	\N	u-kaew	แก้ว ใสสะอาด	https://ui-avatars.com/api/?name=%E0%B9%81%E0%B8%81%E0%B9%89%E0%B8%A7%20%E0%B9%83%E0%B8%AA%E0%B8%AA%E0%B8%B0%E0%B8%AD%E0%B8%B2%E0%B8%94&background=random	ขอบคุณ assign ให้แล้ว	f	\N	\N	\N	f	2026-11-22 12:01:10+07
 m-1469	\N	g-1001-p0-chat	\N	\N	u-kai	ไข่ ฟองดี	https://ui-avatars.com/api/?name=%E0%B9%84%E0%B8%82%E0%B9%88%20%E0%B8%9F%E0%B8%AD%E0%B8%87%E0%B8%94%E0%B8%B5&background=random	deadline ศุกร์นี้นะทุกคน	f	\N	\N	\N	f	2026-11-25 10:03:56+07
+m-1795671127440-100201f3	g-2900-general	\N	\N	\N	u-1795671066171	kaotu	https://ui-avatars.com/api/?name=kaotu&background=random	ดีครับพี่	f	\N	\N	\N	f	2026-11-26 12:32:07.440618+07
 m-1470	\N	g-1001-p0-chat	\N	\N	u-yam	แยม หวานใจ	https://ui-avatars.com/api/?name=%E0%B9%81%E0%B8%A2%E0%B8%A1%20%E0%B8%AB%E0%B8%A7%E0%B8%B2%E0%B8%99%E0%B9%83%E0%B8%88&background=random	ทันแน่นอน	f	\N	\N	\N	f	2026-11-25 10:04:25+07
 m-1471	\N	g-1001-p0-chat	\N	\N	u-nan	แนน วิเศษ	https://ui-avatars.com/api/?name=%E0%B9%81%E0%B8%99%E0%B8%99%20%E0%B8%A7%E0%B8%B4%E0%B9%80%E0%B8%A8%E0%B8%A9&background=random	ขอเลื่อนงานของเราไปจันทร์ได้มั้ย ติดสอบ	f	\N	\N	\N	f	2026-11-25 10:12:37+07
 m-1472	\N	g-1001-p0-chat	\N	\N	u-kai	ไข่ ฟองดี	https://ui-avatars.com/api/?name=%E0%B9%84%E0%B8%82%E0%B9%88%20%E0%B8%9F%E0%B8%AD%E0%B8%87%E0%B8%94%E0%B8%B5&background=random	ได้ แต่ต้องเสร็จก่อนเดโม่วันพุธนะ	f	\N	\N	\N	f	2026-11-25 10:13:17+07
@@ -9644,6 +9735,7 @@ m-2784	\N	g-2275-p0-chat	\N	\N	u-tae	เต้ กล้าหาญ	https://ui-
 m-2785	\N	g-2275-p0-chat	\N	\N	u-som	ส้ม สีส้ม	https://ui-avatars.com/api/?name=%E0%B8%AA%E0%B9%89%E0%B8%A1%20%E0%B8%AA%E0%B8%B5%E0%B8%AA%E0%B9%89%E0%B8%A1&background=random	👍	f	\N	\N	\N	f	2026-11-04 21:43:25+07
 m-2786	\N	g-2275-p0-chat	\N	\N	u-gun	กันต์ มั่นใจ	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B8%B1%E0%B8%99%E0%B8%95%E0%B9%8C%20%E0%B8%A1%E0%B8%B1%E0%B9%88%E0%B8%99%E0%B9%83%E0%B8%88&background=random	อัปเดตงานกันหน่อย ใครติดอะไรบ้าง	f	\N	\N	\N	f	2026-11-07 17:52:24+07
 m-2787	\N	g-2275-p0-chat	\N	\N	u-som	ส้ม สีส้ม	https://ui-avatars.com/api/?name=%E0%B8%AA%E0%B9%89%E0%B8%A1%20%E0%B8%AA%E0%B8%B5%E0%B8%AA%E0%B9%89%E0%B8%A1&background=random	งานเราเสร็จแล้ว ย้ายไป Review ละ	f	\N	\N	\N	f	2026-11-07 17:54:43+07
+m-1795671130484-7ba2bdc1	g-2900-general	\N	\N	\N	u-1795671066171	kaotu	https://ui-avatars.com/api/?name=kaotu&background=random	ผมมาใหม่นะ	f	\N	\N	\N	f	2026-11-26 12:32:10.484766+07
 m-2789	\N	g-2275-p0-chat	\N	\N	u-gun	กันต์ มั่นใจ	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B8%B1%E0%B8%99%E0%B8%95%E0%B9%8C%20%E0%B8%A1%E0%B8%B1%E0%B9%88%E0%B8%99%E0%B9%83%E0%B8%88&background=random	อ๋อ ลืม เดี๋ยวส่งให้ภายในวันนี้	f	\N	\N	\N	f	2026-11-07 17:58:12+07
 m-2790	\N	g-2275-p0-chat	\N	\N	u-tae	เต้ กล้าหาญ	https://ui-avatars.com/api/?name=%E0%B9%80%E0%B8%95%E0%B9%89%20%E0%B8%81%E0%B8%A5%E0%B9%89%E0%B8%B2%E0%B8%AB%E0%B8%B2%E0%B8%8D&background=random	โอเค ขอบใจ	f	\N	\N	\N	f	2026-11-07 17:58:57+07
 m-2791	\N	g-2275-p0-chat	\N	\N	u-gun	กันต์ มั่นใจ	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B8%B1%E0%B8%99%E0%B8%95%E0%B9%8C%20%E0%B8%A1%E0%B8%B1%E0%B9%88%E0%B8%99%E0%B9%83%E0%B8%88&background=random	ลูกค้าขอแก้แบบสอบถามอีกรอบ	f	\N	\N	\N	f	2026-11-09 10:54:57+07
@@ -9694,6 +9786,7 @@ m-2835	\N	g-2275-p1-chat	\N	\N	u-mon	มน กลมกล่อม	https://ui-
 m-2836	\N	g-2275-p1-chat	\N	\N	u-mon	มน กลมกล่อม	https://ui-avatars.com/api/?name=%E0%B8%A1%E0%B8%99%20%E0%B8%81%E0%B8%A5%E0%B8%A1%E0%B8%81%E0%B8%A5%E0%B9%88%E0%B8%AD%E0%B8%A1&background=random	ใครรับแบบสอบถามไปบ้าง ยังไม่มีคนทำ	f	\N	\N	\N	f	2026-11-11 13:36:11+07
 m-2837	\N	g-2275-p1-chat	\N	\N	u-earth	เอิร์ธ มั่นคง	https://ui-avatars.com/api/?name=%E0%B9%80%E0%B8%AD%E0%B8%B4%E0%B8%A3%E0%B9%8C%E0%B8%98%20%E0%B8%A1%E0%B8%B1%E0%B9%88%E0%B8%99%E0%B8%84%E0%B8%87&background=random	รับเอง	f	\N	\N	\N	f	2026-11-11 13:37:08+07
 m-2838	\N	g-2275-p1-chat	\N	\N	u-mon	มน กลมกล่อม	https://ui-avatars.com/api/?name=%E0%B8%A1%E0%B8%99%20%E0%B8%81%E0%B8%A5%E0%B8%A1%E0%B8%81%E0%B8%A5%E0%B9%88%E0%B8%AD%E0%B8%A1&background=random	ขอบคุณ assign ให้แล้ว	f	\N	\N	\N	f	2026-11-11 13:39:00+07
+dmm-1795672313173-acde9487	\N	\N	dm-u-1795671065821__u-1795671066171	\N	u-1795671065821	BAS	https://ui-avatars.com/api/?name=BAS&background=random	test	f	\N	\N	\N	f	2026-11-26 12:51:53.173361+07
 m-2839	\N	g-2275-p1-chat	\N	\N	u-yok	หยก มณีรัตน์	https://ui-avatars.com/api/?name=%E0%B8%AB%E0%B8%A2%E0%B8%81%20%E0%B8%A1%E0%B8%93%E0%B8%B5%E0%B8%A3%E0%B8%B1%E0%B8%95%E0%B8%99%E0%B9%8C&background=random	deadline ศุกร์นี้นะทุกคน	f	\N	\N	\N	f	2026-11-13 19:01:30+07
 m-2840	\N	g-2275-p1-chat	\N	\N	u-mon	มน กลมกล่อม	https://ui-avatars.com/api/?name=%E0%B8%A1%E0%B8%99%20%E0%B8%81%E0%B8%A5%E0%B8%A1%E0%B8%81%E0%B8%A5%E0%B9%88%E0%B8%AD%E0%B8%A1&background=random	ทันแน่นอน	f	\N	\N	\N	f	2026-11-13 19:02:02+07
 m-2841	\N	g-2275-p1-chat	\N	\N	u-earth	เอิร์ธ มั่นคง	https://ui-avatars.com/api/?name=%E0%B9%80%E0%B8%AD%E0%B8%B4%E0%B8%A3%E0%B9%8C%E0%B8%98%20%E0%B8%A1%E0%B8%B1%E0%B9%88%E0%B8%99%E0%B8%84%E0%B8%87&background=random	ขอเลื่อนงานของเราไปจันทร์ได้มั้ย ติดสอบ	f	\N	\N	\N	f	2026-11-13 19:04:07+07
@@ -9818,6 +9911,7 @@ m-3925	\N	g-3571-p1-chat	\N	\N	u-prae	แพร ไหมทอง	https://ui-av
 m-3926	\N	g-3571-p1-chat	\N	\N	u-jom	จอม พลังดี	https://ui-avatars.com/api/?name=%E0%B8%88%E0%B8%AD%E0%B8%A1%20%E0%B8%9E%E0%B8%A5%E0%B8%B1%E0%B8%87%E0%B8%94%E0%B8%B5&background=random	รับอันแรก	f	\N	\N	\N	f	2026-11-21 23:56:11+07
 m-3927	\N	g-3571-p1-chat	\N	\N	u-kong	ก้อง กังวาน	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B9%89%E0%B8%AD%E0%B8%87%20%E0%B8%81%E0%B8%B1%E0%B8%87%E0%B8%A7%E0%B8%B2%E0%B8%99&background=random	รับอันที่สองกับสาม	f	\N	\N	\N	f	2026-11-21 23:57:08+07
 m-3928	\N	g-3571-p1-chat	\N	\N	u-prae	แพร ไหมทอง	https://ui-avatars.com/api/?name=%E0%B9%81%E0%B8%9E%E0%B8%A3%20%E0%B9%84%E0%B8%AB%E0%B8%A1%E0%B8%97%E0%B8%AD%E0%B8%87&background=random	โอเค เดี๋ยว assign ให้	f	\N	\N	\N	f	2026-11-21 23:58:00+07
+dmm-1795672325481-dec26af4	\N	\N	dm-u-1795671065821__u-1795671066171	\N	u-1795671065821	BAS	https://ui-avatars.com/api/?name=BAS&background=random		f	\N	\N	\N	f	2026-11-26 12:52:05.481225+07
 m-3929	\N	g-3571-p1-chat	\N	\N	u-prae	แพร ไหมทอง	https://ui-avatars.com/api/?name=%E0%B9%81%E0%B8%9E%E0%B8%A3%20%E0%B9%84%E0%B8%AB%E0%B8%A1%E0%B8%97%E0%B8%AD%E0%B8%87&background=random	อัปเดตงานกันหน่อย ใครติดอะไรบ้าง	f	\N	\N	\N	f	2026-11-23 21:57:01+07
 m-3930	\N	g-3571-p1-chat	\N	\N	u-kong	ก้อง กังวาน	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B9%89%E0%B8%AD%E0%B8%87%20%E0%B8%81%E0%B8%B1%E0%B8%87%E0%B8%A7%E0%B8%B2%E0%B8%99&background=random	งานเราเสร็จแล้ว ย้ายไป Review ละ	f	\N	\N	\N	f	2026-11-23 21:57:24+07
 m-3931	\N	g-3571-p1-chat	\N	\N	u-jom	จอม พลังดี	https://ui-avatars.com/api/?name=%E0%B8%88%E0%B8%AD%E0%B8%A1%20%E0%B8%9E%E0%B8%A5%E0%B8%B1%E0%B8%87%E0%B8%94%E0%B8%B5&background=random	ติดนิดนึง รอข้อมูลจาก แพร	f	\N	\N	\N	f	2026-11-23 21:58:03+07
@@ -9868,6 +9962,7 @@ m-4519	\N	g-4364-p0-chat	\N	\N	u-guy	กาย แข็งแรง	https://ui-
 m-4520	\N	g-4364-p0-chat	\N	\N	u-kong	ก้อง กังวาน	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B9%89%E0%B8%AD%E0%B8%87%20%E0%B8%81%E0%B8%B1%E0%B8%87%E0%B8%A7%E0%B8%B2%E0%B8%99&background=random	👍	f	\N	\N	\N	f	2026-11-15 23:34:59+07
 m-4521	\N	g-4364-p0-chat	\N	\N	u-kong	ก้อง กังวาน	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B9%89%E0%B8%AD%E0%B8%87%20%E0%B8%81%E0%B8%B1%E0%B8%87%E0%B8%A7%E0%B8%B2%E0%B8%99&background=random	ใครรับmockup หน้าแรกไปบ้าง ยังไม่มีคนทำ	f	\N	\N	\N	f	2026-11-17 18:33:03+07
 m-4522	\N	g-4364-p0-chat	\N	\N	u-guy	กาย แข็งแรง	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B8%B2%E0%B8%A2%20%E0%B9%81%E0%B8%82%E0%B9%87%E0%B8%87%E0%B9%81%E0%B8%A3%E0%B8%87&background=random	รับเอง	f	\N	\N	\N	f	2026-11-17 18:35:30+07
+dmm-1795671417932-f10cd65c	\N	\N	dm-u-1795671066171__u-gift	\N	u-1795671066171	kaotu	https://ui-avatars.com/api/?name=kaotu&background=random	ดีครับเฮียยย	f	\N	\N	\N	f	2026-11-26 12:36:57.932944+07
 m-4523	\N	g-4364-p0-chat	\N	\N	u-kong	ก้อง กังวาน	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B9%89%E0%B8%AD%E0%B8%87%20%E0%B8%81%E0%B8%B1%E0%B8%87%E0%B8%A7%E0%B8%B2%E0%B8%99&background=random	ขอบคุณ assign ให้แล้ว	f	\N	\N	\N	f	2026-11-17 18:35:50+07
 m-4524	\N	g-4364-p0-chat	\N	\N	u-kong	ก้อง กังวาน	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B9%89%E0%B8%AD%E0%B8%87%20%E0%B8%81%E0%B8%B1%E0%B8%87%E0%B8%A7%E0%B8%B2%E0%B8%99&background=random	deadline ศุกร์นี้นะทุกคน	f	\N	\N	\N	f	2026-11-19 16:44:23+07
 m-4525	\N	g-4364-p0-chat	\N	\N	u-guy	กาย แข็งแรง	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B8%B2%E0%B8%A2%20%E0%B9%81%E0%B8%82%E0%B9%87%E0%B8%87%E0%B9%81%E0%B8%A3%E0%B8%87&background=random	ทันแน่นอน	f	\N	\N	\N	f	2026-11-19 16:45:08+07
@@ -9892,6 +9987,7 @@ m-4543	\N	g-4364-p1-chat	\N	\N	u-kong	ก้อง กังวาน	https://ui
 m-4544	\N	g-4364-p1-chat	\N	\N	u-kong	ก้อง กังวาน	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B9%89%E0%B8%AD%E0%B8%87%20%E0%B8%81%E0%B8%B1%E0%B8%87%E0%B8%A7%E0%B8%B2%E0%B8%99&background=random	วิดีโอเดโม่ ร่างแรกเสร็จแล้ว ช่วยดูหน่อย	f	\N	\N	\N	f	2026-10-31 16:32:57+07
 m-4545	\N	g-4364-p1-chat	\N	\N	u-minnie	มินนี่ น่ารัก	https://ui-avatars.com/api/?name=%E0%B8%A1%E0%B8%B4%E0%B8%99%E0%B8%99%E0%B8%B5%E0%B9%88%20%E0%B8%99%E0%B9%88%E0%B8%B2%E0%B8%A3%E0%B8%B1%E0%B8%81&background=random	ดูแล้ว โอเค แก้นิดหน่อยตามคอมเมนต์	f	\N	\N	\N	f	2026-10-31 16:35:07+07
 m-4546	\N	g-4364-p1-chat	\N	\N	u-kong	ก้อง กังวาน	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B9%89%E0%B8%AD%E0%B8%87%20%E0%B8%81%E0%B8%B1%E0%B8%87%E0%B8%A7%E0%B8%B2%E0%B8%99&background=random	แก้แล้ว ย้ายการ์ดไป Done นะ	f	\N	\N	\N	f	2026-10-31 16:36:58+07
+dmm-1795672340147-b8a28afa	\N	\N	dm-u-1795671065821__u-1795671066171	\N	u-1795671065821	BAS	https://ui-avatars.com/api/?name=BAS&background=random		f	\N	\N	\N	f	2026-11-26 12:52:20.147353+07
 m-4547	\N	g-4364-p1-chat	\N	\N	u-first	เฟิร์ส อันดับหนึ่ง	https://ui-avatars.com/api/?name=%E0%B9%80%E0%B8%9F%E0%B8%B4%E0%B8%A3%E0%B9%8C%E0%B8%AA%20%E0%B8%AD%E0%B8%B1%E0%B8%99%E0%B8%94%E0%B8%B1%E0%B8%9A%E0%B8%AB%E0%B8%99%E0%B8%B6%E0%B9%88%E0%B8%87&background=random	ลูกค้าขอแก้รายงานบท 2อีกรอบ	f	\N	\N	\N	f	2026-11-02 21:25:26+07
 m-4548	\N	g-4364-p1-chat	\N	\N	u-minnie	มินนี่ น่ารัก	https://ui-avatars.com/api/?name=%E0%B8%A1%E0%B8%B4%E0%B8%99%E0%B8%99%E0%B8%B5%E0%B9%88%20%E0%B8%99%E0%B9%88%E0%B8%B2%E0%B8%A3%E0%B8%B1%E0%B8%81&background=random	อีกแล้ว 😭	f	\N	\N	\N	f	2026-11-02 21:27:49+07
 m-4549	\N	g-4364-p1-chat	\N	\N	u-first	เฟิร์ส อันดับหนึ่ง	https://ui-avatars.com/api/?name=%E0%B9%80%E0%B8%9F%E0%B8%B4%E0%B8%A3%E0%B9%8C%E0%B8%AA%20%E0%B8%AD%E0%B8%B1%E0%B8%99%E0%B8%94%E0%B8%B1%E0%B8%9A%E0%B8%AB%E0%B8%99%E0%B8%B6%E0%B9%88%E0%B8%87&background=random	แก้แค่สีกับตัวหนังสือ	f	\N	\N	\N	f	2026-11-02 21:29:10+07
@@ -19209,6 +19305,8 @@ m-11224	\N	\N	gdm-11079	\N	u-ohm	โอม สงบสุข	https://ui-avatars
 m-11225	\N	\N	gdm-11079	\N	u-gift	กิ๊ฟ ชัยมงคล	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B8%B4%E0%B9%8A%E0%B8%9F%20%E0%B8%8A%E0%B8%B1%E0%B8%A2%E0%B8%A1%E0%B8%87%E0%B8%84%E0%B8%A5&background=random	ข้าวซอย	f	\N	\N	\N	f	2026-11-25 11:38:18+07
 m-11226	\N	\N	gdm-11079	\N	u-pang	แป้ง ขาวสะอาด	https://ui-avatars.com/api/?name=%E0%B9%81%E0%B8%9B%E0%B9%89%E0%B8%87%20%E0%B8%82%E0%B8%B2%E0%B8%A7%E0%B8%AA%E0%B8%B0%E0%B8%AD%E0%B8%B2%E0%B8%94&background=random	ข้าวขาหมู	f	\N	\N	\N	f	2026-11-25 11:38:57+07
 m-11227	\N	\N	gdm-11079	\N	u-palm	ปาล์ม ทองคำ	https://ui-avatars.com/api/?name=%E0%B8%9B%E0%B8%B2%E0%B8%A5%E0%B9%8C%E0%B8%A1%20%E0%B8%97%E0%B8%AD%E0%B8%87%E0%B8%84%E0%B8%B3&background=random	โอเค ข้าวขาหมู ชนะ	f	\N	\N	\N	f	2026-11-25 11:40:25+07
+dmm-1795671172475-0883ac78	\N	\N	dm-u-1795671066171__u-gift	\N	u-gift	กิ๊ฟ ชัยมงคล	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B8%B4%E0%B9%8A%E0%B8%9F%20%E0%B8%8A%E0%B8%B1%E0%B8%A2%E0%B8%A1%E0%B8%87%E0%B8%84%E0%B8%A5&background=random	โหลน้อง	f	\N	\N	\N	f	2026-11-26 12:32:52.475586+07
+dmm-1795671542481-e32d992f	\N	\N	dm-u-1795671066171__u-gift	\N	u-1795671066171	kaotu	https://ui-avatars.com/api/?name=kaotu&background=random	sell Seed chandelier rate 200/100 bath\n\nsugar cane rate200/60\n\npromtpay 0100013010	f	\N	\N	\N	f	2026-11-26 12:39:02.481349+07
 \.
 
 
@@ -19268,6 +19366,9 @@ nt-1795638024822-1ba0deca	u-jeab	event	วันนี้มีนัด: Demo �
 nt-1795638024823-9cd822a2	u-jan	event	วันนี้มีนัด: Demo ผลงาน	จัดงานเลี้ยงรุ่น	{"id": "2026-11-26", "type": "calendar", "groupId": "g-6052"}	f	2026-11-26 03:20:24.823+07
 nt-1795638024823-167d04c4	u-ice	event	วันนี้มีนัด: Demo ผลงาน	จัดงานเลี้ยงรุ่น	{"id": "2026-11-26", "type": "calendar", "groupId": "g-6052"}	f	2026-11-26 03:20:24.823+07
 nt-1795638025797-5da8d67a	u-tee	vip	VIP ของคุณจะหมดอายุใน 3 วัน	หมดอายุวันที่ 28/11/2569	{"id": "vip", "type": "settings"}	f	2026-11-26 03:20:25.797+07
+nt-1795672827002-e7695032	u-ton	vip	คุณได้รับ GOLD ⭐	ใช้ได้ถึง 3/12/2569 ดูสิทธิพิเศษได้ที่ตั้งค่าของฉัน > VIP	{"id": "vip", "type": "settings"}	f	2026-11-26 13:00:27.002+07
+nt-1795672827028-787f1d17	u-ton	vip	GOLD ของคุณถูกยกเลิกโดยผู้ดูแลระบบ		{"id": "vip", "type": "settings"}	f	2026-11-26 13:00:27.028+07
+nt-1795673084537-43ccc48f	u-1795671065821	vip	คุณได้รับ GOD 💎	ใช้ได้ถึง 26/11/2570 ดูสิทธิพิเศษได้ที่ตั้งค่าของฉัน > VIP	{"id": "vip", "type": "settings"}	t	2026-11-26 13:04:44.537+07
 \.
 
 
@@ -19441,6 +19542,7 @@ g-6052-p2-chat	g-6052-p2	general	2026-11-26 03:17:07.734439+07
 g-6893-p0-chat	g-6893-p0	general	2026-11-26 03:17:07.734439+07
 g-6893-p1-chat	g-6893-p1	general	2026-11-26 03:17:07.734439+07
 g-6893-p2-chat	g-6893-p2	general	2026-11-26 03:17:07.734439+07
+pc-p-1795671180643-1dyb	p-1795671180643-1dyb	general	2026-11-26 12:33:00.64292+07
 \.
 
 
@@ -19576,6 +19678,7 @@ g-6893-p1	u-view
 g-6893-p2	u-ice
 g-6893-p2	u-fah
 g-6893-p2	u-earth
+p-1795671180643-1dyb	u-1795671066171
 \.
 
 
@@ -19608,6 +19711,7 @@ g-6052-p2	g-6052	โปรเจกต์ใหม่	2026-11-16 17:42:46+07	202
 g-6893-p0	g-6893	Main Board	\N	2026-11-26 03:17:07.734439+07
 g-6893-p1	g-6893	โปรเจกต์ใหม่	\N	2026-11-26 03:17:07.734439+07
 g-6893-p2	g-6893	แผนเดือนหน้า	2026-11-16 17:16:39+07	2026-11-26 03:17:07.734439+07
+p-1795671180643-1dyb	g-2900	ออกแบบร้านเกม	\N	2026-11-26 12:33:00.64292+07
 \.
 
 
@@ -20226,6 +20330,26 @@ u-gam	channel:g-5510-ch0	2026-11-26 02:17:07.522+07
 u-gam	channel:g-5510-ch2	2026-11-26 00:17:07.522+07
 u-gam	channel:g-5510-ch3	2026-11-26 00:17:07.522+07
 u-ham	all	2026-11-25 12:00:04+07
+u-ton	channel:g-5510-general	2026-11-26 12:11:10.266773+07
+u-gift	channel:g-3965-general	2026-11-26 12:27:09.857196+07
+u-ton	channel:g-4596-general	2026-11-26 12:28:18.064269+07
+u-admin	channel:g-4596-general	2026-11-26 12:30:36.456132+07
+u-1795671065821	all	2026-11-26 12:31:05.870861+07
+u-1795671066171	all	2026-11-26 12:31:06.219603+07
+u-1795671066171	channel:g-2900-ch0	2026-11-26 12:32:36.535293+07
+u-film	channel:g-6328-general	2026-11-26 12:33:45.595392+07
+u-ton	dm:u-fah	2026-11-26 12:32:16.263223+07
+u-ton	gdm:gdm-10345	2026-11-26 12:32:18.592737+07
+u-ton	channel:g-6893-general	2026-11-26 12:32:31.651164+07
+u-1795671066171	channel:g-2900-ch1	2026-11-26 12:32:37.002324+07
+u-1795671066171	channel:g-2900-ch2	2026-11-26 12:32:37.357535+07
+u-gift	dm:u-1795671066171	2026-11-26 12:32:48.353027+07
+u-gift	channel:g-2900-general	2026-11-26 12:33:45.63362+07
+u-1795671066171	dm:u-gift	2026-11-26 12:36:30.22276+07
+u-1795671066171	project:p-1795671180643-1dyb	2026-11-26 12:40:08.507455+07
+u-1795671066171	channel:g-2900-general	2026-11-26 12:48:09.821947+07
+u-1795671065821	dm:u-1795671066171	2026-11-26 12:51:50.146651+07
+u-1795671066171	dm:u-1795671065821	2026-11-26 12:52:20.185201+07
 \.
 
 
@@ -20244,6 +20368,27 @@ sch-11287	u-mint	อย่าลืมประชุม Sprint Planning 10 โ�
 
 COPY public.sessions (token, user_id, created_at, expires_at) FROM stdin;
 056e7d432c89cac4a7845b32114b869db094a5e8313fe3e0455715da411efae6	u-mint	2026-11-26 03:17:17.919104+07	2026-12-26 03:17:17.918+07
+f3fa7ff20ec9e6d4a6db4fabceac87998f12d218b9bc212d694fc070ec429bc2	u-ton	2026-11-26 12:12:08.949135+07	2026-12-26 12:12:08.949+07
+0980092e31b6d5c5a718226685d5732233ac44f9df24ad30910ab722f1afb844	u-ton	2026-11-26 12:12:18.259589+07	2026-12-26 12:12:18.259+07
+18584316aae7e14810ce7bb2703722ab9b2a44128efa2671c7f234ca03bd9a36	u-film	2026-11-26 12:12:38.530403+07	2026-12-26 12:12:38.53+07
+6584920dc7be3914c79d8e55eacc9a10cc6e80e83ec5dee04eee25e018218219	u-ton	2026-11-26 12:21:15.399898+07	2026-12-26 12:21:15.399+07
+9caa3862235783379fafb3387fad2b70ae1532d50883256a969e3f57ead0e2a0	u-ton	2026-11-26 12:25:18.02174+07	2026-12-26 12:25:18.021+07
+75ca2164a8efcb08466cbbbf85744bcb48198a4444a8929770a8ab3ec075aee9	u-admin	2026-11-26 12:38:30.01496+07	2026-12-26 12:38:30.014+07
+3f1fdda7a35efa8886a996da97464755b655e034a0a044457283ec8372bedc50	u-ton	2026-11-26 12:38:30.073752+07	2026-12-26 12:38:30.073+07
+384b58aa3049d7acf772182d822cad6034b0f5dfb0de31236ad9f2cdaa3e0a72	u-admin	2026-11-26 12:39:33.723938+07	2026-12-26 12:39:33.723+07
+da74627a76d004bbc22228b420e500c70c3079a52b186c5b507eef51644956db	u-ton	2026-11-26 12:39:33.783712+07	2026-12-26 12:39:33.783+07
+51d1732b0971e53ff6d2254363d873f6b2258ca6c8beb7a6ad202863387b6c0c	u-gift	2026-11-26 12:41:25.765741+07	2026-12-26 12:41:25.765+07
+8538cbab31a09a2765f41c5939ee3a99e3fc2a0911cddf81d5faa09720a68d6b	u-admin	2026-11-26 12:44:26.55943+07	2026-12-26 12:44:26.559+07
+e7273b835acbf0649f5e96f67310a1c012907fc3118a6444de4096e64dfeede0	u-staff	2026-11-26 12:44:26.619179+07	2026-12-26 12:44:26.619+07
+cbaef6e086f55ca4c1b1267af19b7c4a78c91973bac68e8b72e6a541591c16ed	u-ton	2026-11-26 12:44:26.672854+07	2026-12-26 12:44:26.672+07
+366d575989eb5a2260258ecb312332f810977578d90e3c2fe9cb4b4a48c2220a	u-mint	2026-11-26 12:44:26.725788+07	2026-12-26 12:44:26.725+07
+29746468397924859088958552f4dcaa162e94100e8bd376ec4e829273c457c1	u-1795671066171	2026-11-26 12:48:25.833501+07	2026-12-26 12:48:25.833+07
+07c1e1be65e237122beaa7145b8bc4e0ffe930e004c59aaf24d4ffeee8f6ab63	u-admin	2026-11-26 12:56:07.235734+07	2026-12-26 12:56:07.235+07
+7192d4b09d0135100e2e6079bb929f84ea6b1f80e7031555f5fea94c6e6104fb	u-admin	2026-11-26 13:00:26.858717+07	2026-12-26 13:00:26.858+07
+b125d54ed50c9cf0355294d258fe06ed6b73664bcdab7d85591620489d5e311b	u-staff	2026-11-26 13:00:26.921558+07	2026-12-26 13:00:26.921+07
+953375bd6647f097841a0cb74782a8cd2dd9de52976912a7ad60f21daf204851	u-ton	2026-11-26 13:00:26.975213+07	2026-12-26 13:00:26.975+07
+c9d1d5389f55144ba086e9b2321ec3b6e42db4d25e962e66188db623d7a042b5	u-admin	2026-11-26 13:03:28.728896+07	2026-12-26 13:03:28.728+07
+737a280d911798eec65b881391e6c1bd579b7d557f79894647c0f85fbd6b5357	u-1795671065821	2026-11-26 13:04:57.843951+07	2026-12-26 13:04:57.843+07
 \.
 
 
@@ -20917,6 +21062,9 @@ g-6893-p2-t5	g-6893-p2	g-6893-p2-todo	ทำข้อสอบเก่าปี
 g-6893-p2-t6	g-6893-p2	g-6893-p2-done	เขียนรายงานบทที่ 2		low	2026-12-04	6	\N	2026-11-26 03:17:07.734439+07
 g-4364-p0-t3	g-4364-p0	g-4364-p0-todo	ถ่ายรูปสินค้า	รายละเอียดงาน: ถ่ายรูปสินค้า ให้เสร็จก่อนประชุมรอบหน้า	high	2026-11-27	3	2026-11-27:tomorrow	2026-11-26 03:17:07.734439+07
 g-5510-p0-t4	g-5510-p0	g-5510-p0-todo	ปรับ performance หน้าแรก		low	2026-11-27	4	2026-11-27:tomorrow	2026-11-26 03:17:07.734439+07
+t1795671649114	p-1795671180643-1dyb	col-0-p-1795671180643-1dyb	งานuen12345		high	2026-11-27	0	\N	2026-11-26 12:40:49.693359+07
+t1795671741248	p-1795671180643-1dyb	col-1-p-1795671180643-1dyb	กำลังทำmindmap		\N	\N	1	\N	2026-11-26 12:42:21.816742+07
+t1795671759656	p-1795671180643-1dyb	col-2-p-1795671180643-1dyb	ทำmindmap เสร็จแล้ว		\N	\N	2	\N	2026-11-26 12:42:40.245309+07
 \.
 
 
@@ -20924,10 +21072,11 @@ g-5510-p0-t4	g-5510-p0	g-5510-p0-todo	ปรับ performance หน้าแ�
 -- Data for Name: tier_settings; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.tier_settings (tier, file_mb, preset_themes, custom_theme) FROM stdin;
-none	5	{}	f
-vip	25	{sakura,midnight}	t
-supervip	50	{sakura,midnight,ocean,forest}	t
+COPY public.tier_settings (tier, file_mb, preset_themes, custom_theme, name, icon, color, rank) FROM stdin;
+none	5	{}	f	ทั่วไป		#64748b	0
+vip	25	{sakura,midnight}	t	VIP	💎	#c026d3	1
+supervip	50	{sakura,midnight,ocean,forest}	t	SUPER VIP	👑	#f59e0b	3
+tier-1795673060458	1000	{sakura,midnight,ocean,forest}	t	GOD	💎	#6366f1	4
 \.
 
 
@@ -20969,6 +21118,8 @@ u-toey	supervip	2026-10-28 09:18:05+07	2026-12-20 03:17:07.522+07	u-admin	code	\
 u-art	supervip	2026-10-26 08:10:09+07	2027-01-27 03:17:07.522+07	u-staff	code	\N
 u-ham	vip	2026-10-15 11:02:31+07	2027-02-12 03:17:07.522+07	u-staff	admin	\N
 u-tee	vip	2026-10-20 20:24:04+07	2026-11-29 03:17:07.522+07	u-staff	code	2026-11-29 03:17:07.522+07
+u-1795671066171	supervip	2026-11-26 12:47:01.506+07	2026-12-03 12:47:01.506+07	u-admin	code	\N
+u-1795671065821	tier-1795673060458	2026-11-26 13:04:44.535+07	2027-11-26 13:04:44.535+07	u-admin	admin	\N
 \.
 
 
@@ -20977,12 +21128,9 @@ u-tee	vip	2026-10-20 20:24:04+07	2026-11-29 03:17:07.522+07	u-staff	code	2026-11
 --
 
 COPY public.users (id, name, email, password_hash, system_role, account_status, suspend_reason, avatar, title, bio, banner_color, presence, settings, custom_theme, reset_code, reset_expires, created_at, last_login_at) FROM stdin;
-u-admin	Admin	admin@test.com	$2b$10$sMPM1rDuUpEYf99m37XnluH7xHN7LwnLDFGmQ8yV0vIkGdcljey7O	administrator	active	\N	https://ui-avatars.com/api/?name=Admin&background=random	ผู้ดูแลระบบ	ดูแลระบบทั้งหมด	#f97316	busy	{}	\N	\N	\N	2026-05-10 15:36:42+07	2026-11-22 12:42:23+07
-u-staff	Staff	staff@test.com	$2b$10$ZuWkN5I3gyzVTldXjE2rfOor84MFOxFM4O6TP9O1xajYvuHIWX5F.	staff	active	\N	https://ui-avatars.com/api/?name=Staff&background=random	ทีมงานดูแลผู้ใช้	ช่วยดูแลชุมชน	#f97316	sleep	{}	\N	\N	\N	2026-05-20 13:43:26+07	2026-11-22 23:45:39+07
 u-staff2	Staff Nok	staff2@test.com	$2b$10$Jbc3Rg.Bad8Hw9XXwb5Y9ufDoS6XhGjurTYDQFxyvFpdrVmXI7GTu	staff	active	\N	https://ui-avatars.com/api/?name=Staff%20Nok&background=random	ทีมงานดูแลผู้ใช้	ดูแลเรื่อง VIP	#ec4899	sleep	{}	\N	\N	\N	2026-06-29 19:39:51+07	2026-11-20 22:16:28+07
 u-beam	บีม ใจดี	beam@test.com	$2b$10$xPZ79S0GEELo/G8BXzv.Dey65tYvvGvToWFd/vV6Ow6NlXxWczUiK	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%9A%E0%B8%B5%E0%B8%A1%20%E0%B9%83%E0%B8%88%E0%B8%94%E0%B8%B5&background=random	UX/UI Designer	เล่นเกมหลังเลิกงาน	#6366f1	online	{}	\N	\N	\N	2026-10-28 22:38:47+07	2026-11-21 18:47:18+07
 u-fah	ฟ้า รุ่งเรือง	fah@test.com	$2b$10$mz9Di6LMbLLGSOtZUU/zEOqxQ.M/xrHpoICXgEuhOHmVqFxhqvRwq	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%9F%E0%B9%89%E0%B8%B2%20%E0%B8%A3%E0%B8%B8%E0%B9%88%E0%B8%87%E0%B9%80%E0%B8%A3%E0%B8%B7%E0%B8%AD%E0%B8%87&background=random	นักศึกษาปี 3		#f97316	online	{}	\N	\N	\N	2026-06-16 13:17:44+07	2026-11-25 18:31:42+07
-u-ton	ต้น วงศ์ทอง	ton@test.com	$2b$10$d/mhOyNu9wjAFsXHe9yyQOhW3WZgkYkymju.3i9L19CN2oYSfOP4G	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%95%E0%B9%89%E0%B8%99%20%E0%B8%A7%E0%B8%87%E0%B8%A8%E0%B9%8C%E0%B8%97%E0%B8%AD%E0%B8%87&background=random	นักศึกษาปี 4	ตื่นสายเป็นประจำ	#f59e0b	sleep	{}	\N	\N	\N	2026-08-22 17:50:58+07	2026-11-24 14:48:11+07
 u-ploy	พลอย แก้วมณี	ploy@test.com	$2b$10$BfxBTn0Fiusbya1im2rum.OhZ3VOgOC8XRvph6ioPJ201AS.cXUti	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%9E%E0%B8%A5%E0%B8%AD%E0%B8%A2%20%E0%B9%81%E0%B8%81%E0%B9%89%E0%B8%A7%E0%B8%A1%E0%B8%93%E0%B8%B5&background=random	ครูสอนพิเศษ	ชอบถ่ายรูปฟิล์ม	#6366f1	offline	{}	\N	\N	\N	2026-07-26 22:34:39+07	2026-11-26 11:13:15+07
 u-nat	ณัฐ พงษ์ไพร	nat@test.com	$2b$10$74riDg6FYOd/2EAWR8jKY.zeTPWgGeaMZ/CnHXIhYJ5QleCQFdUFa	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%93%E0%B8%B1%E0%B8%90%20%E0%B8%9E%E0%B8%87%E0%B8%A9%E0%B9%8C%E0%B9%84%E0%B8%9E%E0%B8%A3&background=random	QA Tester	ชอบกาแฟกับแมว	#ec4899	busy	{}	\N	\N	\N	2026-07-25 09:13:16+07	2026-11-26 12:36:32+07
 u-bank	แบงค์ ทองดี	bank@test.com	$2b$10$jzQbcPU47banHd4NYVPm9eN01Ch6Atj9lEl5.GFJTtT2yOpWQyqDe	member	active	\N	https://ui-avatars.com/api/?name=%E0%B9%81%E0%B8%9A%E0%B8%87%E0%B8%84%E0%B9%8C%20%E0%B8%97%E0%B8%AD%E0%B8%87%E0%B8%94%E0%B8%B5&background=random	Freelance Designer		#f59e0b	sleep	{}	\N	\N	\N	2026-10-15 21:36:52+07	2026-11-21 20:02:57+07
@@ -20992,10 +21140,12 @@ u-cream	ครีม นวลจันทร์	cream@test.com	$2b$10$/OdBQCGU9
 u-dao	ดาว ประเสริฐ	dao@test.com	$2b$10$iH5OdByjt2UfXfjvZyLcCOFg3pgCs4f26GeBVYfNdNC/DxDsopfwy	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%94%E0%B8%B2%E0%B8%A7%20%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B9%80%E0%B8%AA%E0%B8%A3%E0%B8%B4%E0%B8%90&background=random		อ่านหนังสือเดือนละ 2 เล่ม	#0ea5e9	busy	{}	\N	\N	\N	2026-07-15 09:08:43+07	2026-11-25 19:37:53+07
 u-earth	เอิร์ธ มั่นคง	earth@test.com	$2b$10$YSoWICtVyXyJ4YzQbw8Yw.0MggsZhAXp7.T/i6QsLK5MNpo372ZYK	member	active	\N	https://ui-avatars.com/api/?name=%E0%B9%80%E0%B8%AD%E0%B8%B4%E0%B8%A3%E0%B9%8C%E0%B8%98%20%E0%B8%A1%E0%B8%B1%E0%B9%88%E0%B8%99%E0%B8%84%E0%B8%87&background=random	Backend Developer	กำลังหัดเขียนโค้ดทุกวัน	#14b8a6	online	{}	\N	\N	\N	2026-09-04 11:15:00+07	2026-11-21 16:51:00+07
 u-fern	เฟิร์น อ่อนหวาน	fern@test.com	$2b$10$qrkK1kYG6tPSbApQLNxN0.FOFOJynl0P1n/gWBljbqHK0EzXs6VMm	member	active	\N	https://ui-avatars.com/api/?name=%E0%B9%80%E0%B8%9F%E0%B8%B4%E0%B8%A3%E0%B9%8C%E0%B8%99%20%E0%B8%AD%E0%B9%88%E0%B8%AD%E0%B8%99%E0%B8%AB%E0%B8%A7%E0%B8%B2%E0%B8%99&background=random	Mobile Developer	ทำงานที่บ้านเป็นหลัก	#6366f1	sleep	{}	\N	\N	\N	2026-07-27 20:58:05+07	2026-11-26 08:44:38+07
-u-film	ฟิล์ม กิตติกุล	film@test.com	$2b$10$ZX4nMDhHErEXaTlu1N6fM.qI0pN8DjZ7S/MupNWPQeAHyHYR7ntym	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%9F%E0%B8%B4%E0%B8%A5%E0%B9%8C%E0%B8%A1%20%E0%B8%81%E0%B8%B4%E0%B8%95%E0%B8%95%E0%B8%B4%E0%B8%81%E0%B8%B8%E0%B8%A5&background=random		ชอบลองร้านอาหารใหม่ ๆ	#f97316	online	{}	\N	\N	\N	2026-05-31 12:04:22+07	2026-11-23 15:05:43+07
-u-gift	กิ๊ฟ ชัยมงคล	gift@test.com	$2b$10$.3kCpDBUB8Tk4gzgBOMLwOyiFyFyG06vYGYBPdJgPh6IYShZkGQMO	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B8%B4%E0%B9%8A%E0%B8%9F%20%E0%B8%8A%E0%B8%B1%E0%B8%A2%E0%B8%A1%E0%B8%87%E0%B8%84%E0%B8%A5&background=random	QA Tester		#6366f1	busy	{}	\N	\N	\N	2026-08-26 14:35:29+07	2026-11-20 23:34:17+07
 u-golf	กอล์ฟ สมบูรณ์	golf@test.com	$2b$10$jxUq1RLyWpxDEsWr0SRU9u/owihJI9NJNetFHU.S8LAGRnnojxDh2	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B8%AD%E0%B8%A5%E0%B9%8C%E0%B8%9F%20%E0%B8%AA%E0%B8%A1%E0%B8%9A%E0%B8%B9%E0%B8%A3%E0%B8%93%E0%B9%8C&background=random	QA Tester	ทำงานที่บ้านเป็นหลัก	#6366f1	sleep	{}	\N	\N	\N	2026-06-24 22:42:57+07	2026-11-20 08:46:31+07
 u-sun	ซัน แสงทอง	sun@test.com	$2b$10$d4RgFgfbOWpYZtbnmoVMkuK1UXG5NKgyAKd9CTXV0bo.nadaUnR62	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%8B%E0%B8%B1%E0%B8%99%20%E0%B9%81%E0%B8%AA%E0%B8%87%E0%B8%97%E0%B8%AD%E0%B8%87&background=random	บาริสต้า	วิ่งทุกเช้า 5 โมง	#8b5cf6	sleep	{}	\N	\N	\N	2026-06-10 13:24:38+07	2026-11-22 12:43:02+07
+u-ton	ต้น วงศ์ทอง	ton@test.com	$2b$10$d/mhOyNu9wjAFsXHe9yyQOhW3WZgkYkymju.3i9L19CN2oYSfOP4G	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%95%E0%B9%89%E0%B8%99%20%E0%B8%A7%E0%B8%87%E0%B8%A8%E0%B9%8C%E0%B8%97%E0%B8%AD%E0%B8%87&background=random	นักศึกษาปี 4	ตื่นสายเป็นประจำ	#f59e0b	sleep	{}	\N	\N	\N	2026-08-22 17:50:58+07	2026-11-26 13:00:26.9742+07
+u-gift	กิ๊ฟ ชัยมงคล	gift@test.com	$2b$10$.3kCpDBUB8Tk4gzgBOMLwOyiFyFyG06vYGYBPdJgPh6IYShZkGQMO	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%81%E0%B8%B4%E0%B9%8A%E0%B8%9F%20%E0%B8%8A%E0%B8%B1%E0%B8%A2%E0%B8%A1%E0%B8%87%E0%B8%84%E0%B8%A5&background=random	QA Tester		#6366f1	busy	{"sound": true, "theme": "dark", "desktop": false, "fontSize": "normal", "notifyDm": true, "notifyTask": true, "notifyChannel": false, "notifyMention": true}	\N	\N	\N	2026-08-26 14:35:29+07	2026-11-26 12:41:25.764718+07
+u-film	ฟิล์ม กิตติกุล	film@test.com	$2b$10$ZX4nMDhHErEXaTlu1N6fM.qI0pN8DjZ7S/MupNWPQeAHyHYR7ntym	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%9F%E0%B8%B4%E0%B8%A5%E0%B9%8C%E0%B8%A1%20%E0%B8%81%E0%B8%B4%E0%B8%95%E0%B8%95%E0%B8%B4%E0%B8%81%E0%B8%B8%E0%B8%A5&background=random		ชอบลองร้านอาหารใหม่ ๆ	#f97316	online	{}	\N	\N	\N	2026-05-31 12:04:22+07	2026-11-26 12:12:38.529293+07
+u-staff	Staff	staff@test.com	$2b$10$ZuWkN5I3gyzVTldXjE2rfOor84MFOxFM4O6TP9O1xajYvuHIWX5F.	staff	active	\N	https://ui-avatars.com/api/?name=Staff&background=random	ทีมงานดูแลผู้ใช้	ช่วยดูแลชุมชน	#f97316	sleep	{}	\N	\N	\N	2026-05-20 13:43:26+07	2026-11-26 13:00:26.920098+07
 u-ice	ไอซ์ เย็นใจ	ice@test.com	$2b$10$RdcPJJomcY2HKTgOongkM.stSuii5yGalUz4psqf734xzIO2diIjy	member	active	\N	https://ui-avatars.com/api/?name=%E0%B9%84%E0%B8%AD%E0%B8%8B%E0%B9%8C%20%E0%B9%80%E0%B8%A2%E0%B9%87%E0%B8%99%E0%B9%83%E0%B8%88&background=random	นักบัญชี	กำลังหัดเขียนโค้ดทุกวัน	#f59e0b	busy	{}	\N	\N	\N	2026-10-26 15:45:31+07	2026-11-20 13:00:40+07
 u-jay	เจ ศักดิ์ดี	jay@test.com	$2b$10$83ZaslNPxt3mVS63/n3lXO2COgGK/K06xXCBTM.Qbv3bQMflln4Ze	member	active	\N	https://ui-avatars.com/api/?name=%E0%B9%80%E0%B8%88%20%E0%B8%A8%E0%B8%B1%E0%B8%81%E0%B8%94%E0%B8%B4%E0%B9%8C%E0%B8%94%E0%B8%B5&background=random	นักศึกษาปี 3	กำลังหัดเขียนโค้ดทุกวัน	#ec4899	online	{}	\N	\N	\N	2026-07-01 08:02:35+07	2026-11-24 18:12:31+07
 u-kaew	แก้ว ใสสะอาด	kaew@test.com	$2b$10$8xh7FMIII05evtVhCHHH.uGVXU7ggPSo0Vyg/EWR8sv0P.UFPfkf.	member	active	\N	https://ui-avatars.com/api/?name=%E0%B9%81%E0%B8%81%E0%B9%89%E0%B8%A7%20%E0%B9%83%E0%B8%AA%E0%B8%AA%E0%B8%B0%E0%B8%AD%E0%B8%B2%E0%B8%94&background=random		เล่นเกมหลังเลิกงาน	#14b8a6	offline	{}	\N	\N	\N	2026-10-03 08:40:11+07	2026-11-26 20:23:13+07
@@ -21064,7 +21214,10 @@ u-dew	ดิว น้ำค้าง	dew@test.com	$2b$10$YaB.vfCqbjLultvWOVnuje
 u-eye	อาย ดวงตา	eye@test.com	$2b$10$WAKtI5XaYgkK95ELK19dM.lbb1lLyJrH836EDu7C8K0UYZT3BZM16	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%AD%E0%B8%B2%E0%B8%A2%20%E0%B8%94%E0%B8%A7%E0%B8%87%E0%B8%95%E0%B8%B2&background=random		เล่นเกมหลังเลิกงาน	#f97316	online	{}	\N	\N	\N	2026-10-24 18:08:48+07	2026-11-23 17:36:30+07
 u-gam	แก้ม ชมพู	gam@test.com	$2b$10$8eq1.y5iHJJWb.K86OCl3OfqpvbP9jcsepQwTrEeavIHVH0hqeYGW	member	active	\N	https://ui-avatars.com/api/?name=%E0%B9%81%E0%B8%81%E0%B9%89%E0%B8%A1%20%E0%B8%8A%E0%B8%A1%E0%B8%9E%E0%B8%B9&background=random	QA Tester	ทำงานที่บ้านเป็นหลัก	#0ea5e9	online	{}	\N	\N	\N	2026-08-11 10:11:56+07	2026-11-20 08:53:36+07
 u-ham	แฮม อร่อยดี	ham@test.com	$2b$10$fcQgK7YAusR80RwYkp5dk.L3lGjl8ZCDbnR0Rzai0CgxjVGXvMiLS	member	active	\N	https://ui-avatars.com/api/?name=%E0%B9%81%E0%B8%AE%E0%B8%A1%20%E0%B8%AD%E0%B8%A3%E0%B9%88%E0%B8%AD%E0%B8%A2%E0%B8%94%E0%B8%B5&background=random		เล่นเกมหลังเลิกงาน	#ec4899	offline	{}	\N	\N	\N	2026-10-03 17:21:42+07	2026-11-26 22:52:00+07
-u-mint	มิ้นท์ ศรีสวัสดิ์	mint@test.com	$2b$10$tZoEA5TxGNYHXZ9ryafrGeKA/tKb3IrnJEUq5uBeE0Agf80mlfaoe	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%A1%E0%B8%B4%E0%B9%89%E0%B8%99%E0%B8%97%E0%B9%8C%20%E0%B8%A8%E0%B8%A3%E0%B8%B5%E0%B8%AA%E0%B8%A7%E0%B8%B1%E0%B8%AA%E0%B8%94%E0%B8%B4%E0%B9%8C&background=random	Frontend Developer		#8b5cf6	online	{}	\N	\N	\N	2026-08-04 09:17:00+07	2026-11-26 03:17:17.917756+07
+u-1795671065821	BAS	b@test.com	$2b$10$1rutYE5X6J1GhZhkBbm/HOc9mPtRfwE/gK1Fu7x0bsF8WgWigeI.a	staff	active	\N	https://ui-avatars.com/api/?name=BAS&background=random			\N	online	{"sound": true, "theme": "dark", "desktop": false, "fontSize": "normal", "notifyDm": true, "notifyTask": true, "notifyChannel": false, "notifyMention": true}	\N	\N	\N	2026-11-26 12:31:05.870861+07	2026-11-26 13:04:57.842383+07
+u-admin	Admin	admin@test.com	$2b$10$sMPM1rDuUpEYf99m37XnluH7xHN7LwnLDFGmQ8yV0vIkGdcljey7O	administrator	active	\N	https://ui-avatars.com/api/?name=Admin&background=random	ผู้ดูแลระบบ	ดูแลระบบทั้งหมด	#f97316	online	{"sound": true, "theme": "dark", "desktop": false, "fontSize": "normal", "notifyDm": true, "notifyTask": true, "notifyChannel": false, "notifyMention": true}	\N	\N	\N	2026-05-10 15:36:42+07	2026-11-26 13:03:28.72745+07
+u-mint	มิ้นท์ ศรีสวัสดิ์	mint@test.com	$2b$10$tZoEA5TxGNYHXZ9ryafrGeKA/tKb3IrnJEUq5uBeE0Agf80mlfaoe	member	active	\N	https://ui-avatars.com/api/?name=%E0%B8%A1%E0%B8%B4%E0%B9%89%E0%B8%99%E0%B8%97%E0%B9%8C%20%E0%B8%A8%E0%B8%A3%E0%B8%B5%E0%B8%AA%E0%B8%A7%E0%B8%B1%E0%B8%AA%E0%B8%94%E0%B8%B4%E0%B9%8C&background=random	Frontend Developer		#8b5cf6	online	{}	\N	\N	\N	2026-08-04 09:17:00+07	2026-11-26 12:44:26.724785+07
+u-1795671066171	kaotu	kaotu@test.com	$2b$10$DTWIkdeeB1MCfkLRMnCfM..1hjCLW4U1y8EdsvPcFXz5TvDGjHNvO	staff	active	\N	https://ui-avatars.com/api/?name=kaotu&background=random			\N	online	{}	\N	\N	\N	2026-11-26 12:31:06.219603+07	2026-11-26 12:48:25.832242+07
 \.
 
 
@@ -21079,6 +21232,7 @@ VIP-EVENT-NOV	u-kong	2026-11-26 03:17:07.734439+07
 VIP-EVENT-NOV	u-toey	2026-11-26 03:17:07.734439+07
 VIP-EVENT-NOV	u-job	2026-11-26 03:17:07.734439+07
 VIP-EVENT-NOV	u-fern	2026-11-26 03:17:07.734439+07
+VIP-98MD-TVQ6	u-1795671066171	2026-11-26 12:47:01.506308+07
 \.
 
 
@@ -21090,6 +21244,7 @@ COPY public.vip_codes (code, tier, days, max_uses, note, created_by, created_at)
 VIP-TEST-0001	vip	30	20	รหัสทดสอบ VIP	u-admin	2026-11-23 22:28:07+07
 VIP-GOLD-0001	supervip	30	5	รหัสทดสอบ SUPER VIP	u-staff2	2026-11-24 12:01:17+07
 VIP-EVENT-NOV	vip	14	50	แจกในกิจกรรมเดือนพฤศจิกายน	u-staff	2026-11-06 22:51:27+07
+VIP-98MD-TVQ6	supervip	7	1		u-admin	2026-11-26 12:46:40.352767+07
 \.
 
 
@@ -21097,7 +21252,7 @@ VIP-EVENT-NOV	vip	14	50	แจกในกิจกรรมเดือนพ�
 -- Name: message_attachments_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.message_attachments_id_seq', 1, false);
+SELECT pg_catalog.setval('public.message_attachments_id_seq', 2, true);
 
 
 --
@@ -21162,6 +21317,22 @@ ALTER TABLE ONLY public.conversation_participants
 
 ALTER TABLE ONLY public.conversations
     ADD CONSTRAINT conversations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: daily_active_users daily_active_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.daily_active_users
+    ADD CONSTRAINT daily_active_users_pkey PRIMARY KEY (day, user_id);
+
+
+--
+-- Name: daily_peak_online daily_peak_online_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.daily_peak_online
+    ADD CONSTRAINT daily_peak_online_pkey PRIMARY KEY (day);
 
 
 --
@@ -21721,6 +21892,14 @@ ALTER TABLE ONLY public.conversations
 
 
 --
+-- Name: daily_active_users daily_active_users_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.daily_active_users
+    ADD CONSTRAINT daily_active_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: group_bans group_bans_banned_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -22137,6 +22316,14 @@ ALTER TABLE ONLY public.user_vip
 
 
 --
+-- Name: user_vip user_vip_tier_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_vip
+    ADD CONSTRAINT user_vip_tier_fkey FOREIGN KEY (tier) REFERENCES public.tier_settings(tier);
+
+
+--
 -- Name: user_vip user_vip_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -22169,8 +22356,16 @@ ALTER TABLE ONLY public.vip_codes
 
 
 --
+-- Name: vip_codes vip_codes_tier_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vip_codes
+    ADD CONSTRAINT vip_codes_tier_fkey FOREIGN KEY (tier) REFERENCES public.tier_settings(tier);
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict TWLLhxv8RQuLmEebGU8sgjhUaexg464G8izonzZiFWAUSkNnY03AsFbYTjpM8a5
+\unrestrict R9VOHKUmXVNwhOlqKsVIEbYyV70kIcTyvr0WzxkX5YjNsFIar9nK4VDa3cNQSUl
 

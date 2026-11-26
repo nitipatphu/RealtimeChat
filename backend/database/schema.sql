@@ -54,15 +54,19 @@ CREATE TABLE read_markers (
 );
 
 CREATE TABLE tier_settings (
-  tier           TEXT PRIMARY KEY CHECK (tier IN ('none', 'vip', 'supervip')),
-  file_mb        INTEGER NOT NULL CHECK (file_mb BETWEEN 1 AND 100),
+  tier           TEXT PRIMARY KEY,
+  name           TEXT NOT NULL DEFAULT '',
+  icon           TEXT NOT NULL DEFAULT '',
+  color          TEXT NOT NULL DEFAULT '#6366f1',
+  rank           INTEGER NOT NULL DEFAULT 1,
+  file_mb        INTEGER NOT NULL CHECK (file_mb BETWEEN 1 AND 1000),
   preset_themes  TEXT[] NOT NULL DEFAULT '{}',
   custom_theme   BOOLEAN NOT NULL DEFAULT false
 );
 
 CREATE TABLE user_vip (
   user_id     TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  tier        TEXT NOT NULL CHECK (tier IN ('vip', 'supervip')),
+  tier        TEXT NOT NULL REFERENCES tier_settings(tier),
   since       TIMESTAMPTZ NOT NULL DEFAULT now(),
   expires_at  TIMESTAMPTZ NOT NULL,
   granted_by  TEXT REFERENCES users(id) ON DELETE SET NULL,
@@ -74,7 +78,7 @@ CREATE INDEX user_vip_expires_idx ON user_vip (expires_at);
 
 CREATE TABLE vip_codes (
   code        TEXT PRIMARY KEY,
-  tier        TEXT NOT NULL CHECK (tier IN ('vip', 'supervip')),
+  tier        TEXT NOT NULL REFERENCES tier_settings(tier),
   days        INTEGER NOT NULL CHECK (days BETWEEN 1 AND 3650),
   max_uses    INTEGER NOT NULL DEFAULT 1 CHECK (max_uses BETWEEN 1 AND 1000),
   note        TEXT NOT NULL DEFAULT '',
@@ -415,7 +419,19 @@ CREATE TABLE notifications (
 CREATE INDEX notifications_user_idx ON notifications (user_id, created_at DESC);
 CREATE INDEX notifications_unread_idx ON notifications (user_id) WHERE NOT is_read;
 
-INSERT INTO tier_settings (tier, file_mb, preset_themes, custom_theme) VALUES
-  ('none', 5, '{}', false),
-  ('vip', 25, '{sakura,midnight}', true),
-  ('supervip', 50, '{sakura,midnight,ocean,forest}', true);
+CREATE TABLE daily_active_users (
+  day      DATE NOT NULL,
+  user_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (day, user_id)
+);
+
+CREATE TABLE daily_peak_online (
+  day      DATE PRIMARY KEY,
+  peak     INTEGER NOT NULL DEFAULT 0,
+  peak_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+INSERT INTO tier_settings (tier, name, icon, color, rank, file_mb, preset_themes, custom_theme) VALUES
+  ('none', 'ทั่วไป', '', '#64748b', 0, 5, '{}', false),
+  ('vip', 'VIP', '💎', '#c026d3', 1, 25, '{sakura,midnight}', true),
+  ('supervip', 'SUPER VIP', '👑', '#f59e0b', 2, 50, '{sakura,midnight,ocean,forest}', true);

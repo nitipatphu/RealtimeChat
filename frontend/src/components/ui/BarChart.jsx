@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { shortDay } from '../../utils/format';
 
-export default function BarChart({ data, label, unit, height }) {
+export default function BarChart({ data, label, unit, height, showMax }) {
   const [hoverIndex, setHoverIndex] = useState(null);
   const [showTable, setShowTable] = useState(false);
 
@@ -14,8 +14,10 @@ export default function BarChart({ data, label, unit, height }) {
   if (maxValue % 2 === 1) maxValue = maxValue + 1;
 
   let total = 0;
+  let highest = 0;
   data.forEach(item => {
     total = total + item.count;
+    if (item.count > highest) highest = item.count;
   });
   const middleValue = maxValue / 2;
   const labelStep = Math.ceil(data.length / 5);
@@ -24,7 +26,7 @@ export default function BarChart({ data, label, unit, height }) {
     <div>
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm text-slate-500">
-          รวม <span className="font-semibold text-slate-900 tabular-nums">{total}</span> {unit}
+          {showMax ? 'สูงสุด' : 'รวม'} <span className="font-semibold text-slate-900 tabular-nums">{showMax ? highest : total}</span> {unit}
         </p>
         <button type="button" onClick={() => setShowTable(!showTable)} className="text-xs text-slate-500 hover:text-slate-800 underline underline-offset-2">
           {showTable ? 'ดูเป็นกราฟ' : 'ดูเป็นตาราง'}

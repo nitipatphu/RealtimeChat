@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { getPerks, getTierSettings } from '../utils/vip.js';
+import { getPerks, getBiggestFileMB } from '../utils/vip.js';
 import { findUserById } from '../models/userModel.js';
 
 export const uploadFile = async (req, res) => {
@@ -12,8 +12,7 @@ export const uploadFile = async (req, res) => {
   const limitMB = (await getPerks(user)).fileMB;
   if (req.file.size > limitMB * 1024 * 1024) {
     fs.unlink(req.file.path, () => {});
-    const tiers = await getTierSettings();
-    const biggest = Math.max(tiers.vip.fileMB, tiers.supervip.fileMB);
+    const biggest = await getBiggestFileMB();
     res.status(400);
     throw new Error('ไฟล์ใหญ่เกิน ' + limitMB + ' MB' + (biggest > limitMB ? ' (อัปเกรด VIP เพื่อส่งไฟล์ใหญ่ขึ้น)' : ''));
   }

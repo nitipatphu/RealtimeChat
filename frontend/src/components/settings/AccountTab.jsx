@@ -5,6 +5,7 @@ import Button from '../ui/Button';
 import { SystemRoleBadge } from '../ui/Badge';
 import { Field, ErrorBox, inputClass } from '../ui/Form';
 import { formatDate, formatDateTime } from '../../utils/format';
+import { showSuccess, askConfirm } from '../../utils/dialog';
 
 export default function AccountTab({ currentUser, onLogout, showSaved }) {
   const [oldPw, setOldPw] = useState('');
@@ -50,12 +51,13 @@ export default function AccountTab({ currentUser, onLogout, showSaved }) {
       setDeleteError('กรุณากรอกรหัสผ่านเพื่อยืนยัน');
       return;
     }
-    if (!window.confirm('ลบบัญชีถาวร? ย้อนกลับไม่ได้')) return;
+    const confirmed = await askConfirm('ลบบัญชีถาวร? ย้อนกลับไม่ได้');
+    if (!confirmed) return;
 
     setDeleteError('');
     try {
       await apiSend('DELETE', '/users/' + currentUser.id, { password: deletePw });
-      alert('ลบบัญชีเรียบร้อยแล้ว');
+      showSuccess('ลบบัญชีเรียบร้อยแล้ว');
       onLogout();
     } catch (err) {
       setDeleteError(err.message);

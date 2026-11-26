@@ -11,6 +11,7 @@ import { VisibilityPicker } from '../lobby/CreateGroupModal';
 import { isAdminUser } from '../../utils/permissions';
 import { formatDate } from '../../utils/format';
 import UserPicker from '../ui/UserPicker';
+import { askText } from '../../utils/dialog';
 
 function GroupFormModal({ group, currentUser, onClose, onSaved }) {
   const [name, setName] = useState(group ? group.name : '');
@@ -159,7 +160,7 @@ export default function AdminGroupsTab({ currentUser, showSaved, onInspectGroup 
   };
 
   const deleteGroup = async (group) => {
-    const typed = window.prompt('พิมพ์ชื่อกลุ่ม "' + group.name + '" เพื่อยืนยันการลบ');
+    const typed = await askText('พิมพ์ชื่อกลุ่ม "' + group.name + '" เพื่อยืนยันการลบ');
     if (typed === null) return;
     if (typed !== group.name) {
       setError('ชื่อกลุ่มไม่ตรง ยกเลิกการลบ');

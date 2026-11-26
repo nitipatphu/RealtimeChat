@@ -11,6 +11,7 @@ import Avatar from '../ui/Avatar';
 import LoadOlderButton from '../chat/LoadOlderButton';
 import { mergeMessages, getOldestTime, getLastId } from '../../utils/messages';
 import BlockedContext from '../../blockedContext';
+import { showError, askConfirm } from '../../utils/dialog';
 
 export default function DirectMessageView({ otherUser, currentUser, users, onOpenProfile, focusMessageId }) {
   const [messages, setMessages] = useState([]);
@@ -90,7 +91,7 @@ export default function DirectMessageView({ otherUser, currentUser, users, onOpe
       setMessages(prev => mergeMessages(prev, data.messages));
       setHasMore(data.hasMore);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     } finally {
       setLoadingOlder(false);
     }
@@ -111,7 +112,7 @@ export default function DirectMessageView({ otherUser, currentUser, users, onOpe
       saveMessageLocally(data);
       return true;
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
       return false;
     }
   };
@@ -122,19 +123,20 @@ export default function DirectMessageView({ otherUser, currentUser, users, onOpe
       saveMessageLocally(data);
       return true;
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
       return false;
     }
   };
 
   const deleteMessage = async (msgId) => {
-    if (!window.confirm('ยืนยันการลบข้อความนี้?')) return;
+    const confirmed = await askConfirm('ยืนยันการลบข้อความนี้?');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', url + '/' + msgId);
       setMessages(prev => prev.filter(m => m.id !== msgId && m.parentId !== msgId));
       if (activeThreadId === msgId) setActiveThreadId(null);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 

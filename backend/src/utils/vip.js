@@ -1,43 +1,105 @@
-import { getMany } from '../config/database.js';
+import { query, getOne, getMany } from '../config/database.js';
 
-export const VIP_TIERS = ['vip', 'supervip'];
-export const ALL_TIERS = ['none', 'vip', 'supervip'];
-
-export const VIP_NAMES = { vip: 'VIP', supervip: 'SUPER VIP' };
+export const NO_TIER = 'none';
 
 export const PRESET_THEMES = ['sakura', 'midnight', 'ocean', 'forest'];
 
-export const MAX_FILE_MB = 100;
+export const MAX_FILE_MB = 1000;
 
-export const DEFAULT_TIER_SETTINGS = {
-  none: { fileMB: 5, presetThemes: [], customTheme: false },
-  vip: { fileMB: 25, presetThemes: ['sakura', 'midnight'], customTheme: true },
-  supervip: { fileMB: 50, presetThemes: ['sakura', 'midnight', 'ocean', 'forest'], customTheme: true }
-};
+const DEFAULT_TIERS = [
+  { tier: 'none', name: 'ทั่วไป', icon: '', color: '#64748b', rank: 0 },
+  { tier: 'vip', name: 'VIP', icon: '💎', color: '#c026d3', rank: 1 },
+  { tier: 'supervip', name: 'SUPER VIP', icon: '👑', color: '#f59e0b', rank: 2 }
+];
 
-export function getVipTier(user) {
-  if (!user || !user.vip) return null;
-  if (!VIP_TIERS.includes(user.vip.tier)) return null;
-  if (user.vip.expiresAt && new Date(user.vip.expiresAt).getTime() <= Date.now()) return null;
-  return user.vip.tier;
+export async function updateTierTable() {
+  await query('ALTER TABLE tier_settings DROP CONSTRAINT IF EXISTS tier_settings_tier_check');
+  await query('ALTER TABLE user_vip DROP CONSTRAINT IF EXISTS user_vip_tier_check');
+  await query('ALTER TABLE vip_codes DROP CONSTRAINT IF EXISTS vip_codes_tier_check');
+  await query('ALTER TABLE tier_settings DROP CONSTRAINT IF EXISTS tier_settings_file_mb_check');
+  await query('ALTER TABLE tier_settings ADD CONSTRAINT tier_settings_file_mb_check CHECK (file_mb BETWEEN 1 AND ' + MAX_FILE_MB + ')');
+  await query("ALTER TABLE tier_settings ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT ''");
+  await query("ALTER TABLE tier_settings ADD COLUMN IF NOT EXISTS icon TEXT NOT NULL DEFAULT ''");
+  await query("ALTER TABLE tier_settings ADD COLUMN IF NOT EXISTS color TEXT NOT NULL DEFAULT '#6366f1'");
+  await query('ALTER TABLE tier_settings ADD COLUMN IF NOT EXISTS rank INTEGER NOT NULL DEFAULT 1');
+
+  for (const item of DEFAULT_TIERS) {
+    await query(
+      "UPDATE tier_settings SET name = $2, icon = $3, color = $4, rank = $5 WHERE tier = $1 AND name = ''",
+      [item.tier, item.name, item.icon, item.color, item.rank]
+    );
+  }
+  await query(
+    "INSERT INTO tier_settings (tier, file_mb, preset_themes, custom_theme, name, icon, color, rank) VALUES ('none', 5, '{}', false, 'ทั่วไป', '', '#64748b', 0) ON CONFLICT DO NOTHING"
+  );
+
+  const userFk = await getOne("SELECT 1 FROM pg_constraint WHERE conname = 'user_vip_tier_fkey'");
+  if (!userFk) {
+    await query('ALTER TABLE user_vip ADD CONSTRAINT user_vip_tier_fkey FOREIGN KEY (tier) REFERENCES tier_settings(tier)');
+  }
+  const codeFk = await getOne("SELECT 1 FROM pg_constraint WHERE conname = 'vip_codes_tier_fkey'");
+  if (!codeFk) {
+    await query('ALTER TABLE vip_codes ADD CONSTRAINT vip_codes_tier_fkey FOREIGN KEY (tier) REFERENCES tier_settings(tier)');
+  }
+}
+
+function toTier(row) {
+  return {
+    id: row.tier,
+    name: row.name,
+    icon: row.icon,
+    color: row.color,
+    rank: row.rank,
+    fileMB: row.file_mb,
+    presetThemes: row.preset_themes || [],
+    customTheme: row.custom_theme
+  };
+}
+
+export async function getTierList() {
+  const rows = await getMany('SELECT * FROM tier_settings ORDER BY rank, tier');
+  return rows.map(toTier);
 }
 
 export async function getTierSettings() {
-  const rows = await getMany('SELECT * FROM tier_settings');
+  const list = await getTierList();
   const result = {};
-  ALL_TIERS.forEach(tier => {
-    const row = rows.find(r => r.tier === tier);
-    result[tier] = row
-      ? { fileMB: row.file_mb, presetThemes: row.preset_themes || [], customTheme: row.custom_theme }
-      : { ...DEFAULT_TIER_SETTINGS[tier] };
+  list.forEach(item => {
+    result[item.id] = item;
   });
   return result;
 }
 
+export async function findVipTier(tierId) {
+  if (!tierId || tierId === NO_TIER) return null;
+  const row = await getOne('SELECT * FROM tier_settings WHERE tier = $1', [tierId]);
+  if (!row) return null;
+  return toTier(row);
+}
+
+export async function getTierName(tierId) {
+  const tier = await findVipTier(tierId);
+  if (!tier) return 'VIP';
+  return tier.name;
+}
+
+export function getVipTier(user) {
+  if (!user || !user.vip) return null;
+  if (!user.vip.tier || user.vip.tier === NO_TIER) return null;
+  if (user.vip.expiresAt && new Date(user.vip.expiresAt).getTime() <= Date.now()) return null;
+  return user.vip.tier;
+}
+
 export async function getPerks(user) {
-  const tier = getVipTier(user) || 'none';
   const tiers = await getTierSettings();
-  return tiers[tier];
+  const tier = getVipTier(user);
+  if (tier && tiers[tier]) return tiers[tier];
+  return tiers[NO_TIER];
+}
+
+export async function getBiggestFileMB() {
+  const row = await getOne('SELECT max(file_mb) AS biggest FROM tier_settings');
+  return Number(row.biggest) || 0;
 }
 
 export async function canUseTheme(user, theme) {
@@ -50,27 +112,36 @@ export async function canUseTheme(user, theme) {
   return perks.presetThemes.includes(theme);
 }
 
-export function cleanTierSettings(input) {
-  const result = {};
-  ALL_TIERS.forEach(tier => {
-    const item = (input && input[tier]) || {};
-    const fileMB = Math.round(Number(item.fileMB));
-    if (!fileMB || fileMB < 1 || fileMB > MAX_FILE_MB) {
-      throw new Error('ขนาดไฟล์ต้องอยู่ระหว่าง 1 ถึง ' + MAX_FILE_MB + ' MB');
-    }
-    result[tier] = {
-      fileMB: fileMB,
-      presetThemes: Array.isArray(item.presetThemes) ? PRESET_THEMES.filter(t => item.presetThemes.includes(t)) : [],
-      customTheme: item.customTheme === true
-    };
-  });
-  return result;
-}
+export function cleanTierInput(input) {
+  const item = input || {};
+  const name = String(item.name || '').trim().slice(0, 30);
+  if (!name) {
+    throw new Error('กรุณาตั้งชื่อระดับ');
+  }
 
-export function tierRank(tier) {
-  if (tier === 'supervip') return 2;
-  if (tier === 'vip') return 1;
-  return 0;
+  const fileMB = Math.round(Number(item.fileMB));
+  if (!fileMB || fileMB < 1 || fileMB > MAX_FILE_MB) {
+    throw new Error('ขนาดไฟล์ต้องอยู่ระหว่าง 1 ถึง ' + MAX_FILE_MB + ' MB');
+  }
+
+  let color = String(item.color || '').trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+    color = '#6366f1';
+  }
+
+  let presetThemes = [];
+  if (Array.isArray(item.presetThemes)) {
+    presetThemes = PRESET_THEMES.filter(t => item.presetThemes.includes(t));
+  }
+
+  return {
+    name: name,
+    icon: String(item.icon || '').trim().slice(0, 8),
+    color: color,
+    fileMB: fileMB,
+    presetThemes: presetThemes,
+    customTheme: item.customTheme === true
+  };
 }
 
 export function makeVipRecord(user, tier, days, byId, source) {

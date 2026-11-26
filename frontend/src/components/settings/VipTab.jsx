@@ -4,8 +4,8 @@ import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Icon from '../ui/Icon';
 import { ErrorBox, inputClass } from '../ui/Form';
-import { VipBadge } from '../ui/Badge';
-import { getVipTier, VIP_NAMES, VIP_THEMES, getTierSettings } from '../../utils/vip';
+import { TierBadge } from '../ui/Badge';
+import { getVipTier, getTierInfo, getTierList, VIP_THEMES, NO_TIER, tierGradient } from '../../utils/vip';
 import { formatDate } from '../../utils/format';
 
 function themeNames(list) {
@@ -13,16 +13,29 @@ function themeNames(list) {
   return VIP_THEMES.filter(t => list.includes(t.id)).map(t => t.label).join(', ');
 }
 
-function buildPerks() {
-  const tiers = getTierSettings();
-  return [
-    { label: 'ป้ายข้างชื่อ', none: '–', vip: '💎 VIP', supervip: '👑 SUPER VIP' },
-    { label: 'สีชื่อพิเศษ', none: '–', vip: 'ไล่สีม่วงชมพู', supervip: 'ไล่สีทอง' },
-    { label: 'ขนาดไฟล์แนบ', none: tiers.none.fileMB + ' MB', vip: tiers.vip.fileMB + ' MB', supervip: tiers.supervip.fileMB + ' MB' },
-    { label: 'ธีมสำเร็จรูป', none: themeNames(tiers.none.presetThemes), vip: themeNames(tiers.vip.presetThemes), supervip: themeNames(tiers.supervip.presetThemes) },
-    { label: 'ออกแบบธีมเอง', none: tiers.none.customTheme ? '✓' : '–', vip: tiers.vip.customTheme ? '✓' : '–', supervip: tiers.supervip.customTheme ? '✓' : '–' }
-  ];
+function perkText(tier, key) {
+  const isBasic = tier.id === NO_TIER;
+  if (key === 'badge') {
+    if (isBasic) return '–';
+    return tier.icon + ' ' + tier.name;
+  }
+  if (key === 'nameColor') {
+    if (isBasic) return '–';
+    return 'มี';
+  }
+  if (key === 'file') return tier.fileMB + ' MB';
+  if (key === 'themes') return themeNames(tier.presetThemes);
+  if (tier.customTheme) return '✓';
+  return '–';
 }
+
+const PERK_ROWS = [
+  { key: 'badge', label: 'ป้ายข้างชื่อ' },
+  { key: 'nameColor', label: 'สีชื่อพิเศษ' },
+  { key: 'file', label: 'ขนาดไฟล์แนบ' },
+  { key: 'themes', label: 'ธีมสำเร็จรูป' },
+  { key: 'custom', label: 'ออกแบบธีมเอง' }
+];
 
 export default function VipTab({ currentUser, onUserUpdated }) {
   const [code, setCode] = useState('');
@@ -31,7 +44,6 @@ export default function VipTab({ currentUser, onUserUpdated }) {
   const [saving, setSaving] = useState(false);
 
   const tier = getVipTier(currentUser);
-  const isSuper = tier === 'supervip';
   const vip = currentUser.vip;
 
   let daysLeft = 0;
@@ -57,28 +69,30 @@ export default function VipTab({ currentUser, onUserUpdated }) {
     }
   };
 
-  let cardColor = 'bg-gradient-to-br from-slate-500 to-slate-700';
+  let cardStyle = { backgroundImage: tierGradient('#64748b') };
   let cardIcon = <Icon name="star" className="w-7 h-7" />;
+  let tierName = 'ผู้ใช้ทั่วไป';
   if (tier) {
-    cardColor = 'bg-gradient-to-br from-fuchsia-500 via-violet-500 to-indigo-600';
-    cardIcon = '💎';
+    const info = getTierInfo(tier);
+    cardStyle = { backgroundImage: tierGradient(info.color) };
+    cardIcon = info.icon || '💎';
+    tierName = info.name;
   }
-  if (isSuper) {
-    cardColor = 'bg-gradient-to-br from-amber-400 via-orange-500 to-rose-500';
-    cardIcon = '👑';
-  }
+  const tiers = getTierList();
+  const myTierId = tier || NO_TIER;
 
   return (
     <div className="space-y-6">
       <div
-        className={'rounded-2xl p-6 text-white shadow-lg ' + cardColor}
+        className="rounded-2xl p-6 text-white shadow-lg"
+        style={cardStyle}
       >
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm text-white/80">สถานะของคุณ</p>
             <p className="text-3xl font-bold mt-1 flex items-center gap-2">
               {cardIcon}
-              {tier ? VIP_NAMES[tier] : 'ผู้ใช้ทั่วไป'}
+              {tierName}
             </p>
             {tier ? (
               <p className="text-sm text-white/90 mt-2">
@@ -125,18 +139,22 @@ export default function VipTab({ currentUser, onUserUpdated }) {
             <thead>
               <tr className="border-y border-slate-100 bg-slate-50/70 text-left">
                 <th className="px-4 sm:px-6 py-2.5 font-medium text-slate-500">สิทธิ์</th>
-                <th className={`px-3 py-2.5 font-medium ${!tier ? 'text-indigo-700' : 'text-slate-500'}`}>ทั่วไป</th>
-                <th className="px-3 py-2.5"><VipBadge user={{ vip: { tier: 'vip' } }} /></th>
-                <th className="px-3 py-2.5 pr-6"><VipBadge user={{ vip: { tier: 'supervip' } }} /></th>
+                {tiers.map(item => (
+                  <th key={item.id} className="px-3 py-2.5 font-medium text-slate-500 whitespace-nowrap">
+                    {item.id === NO_TIER ? item.name : <TierBadge tierId={item.id} />}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {buildPerks().map(perk => (
-                <tr key={perk.label}>
-                  <td className="px-4 sm:px-6 py-3 font-medium text-slate-800">{perk.label}</td>
-                  <td className={`px-3 py-3 ${!tier ? 'text-slate-900 font-medium' : 'text-slate-500'}`}>{perk.none}</td>
-                  <td className={`px-3 py-3 ${tier === 'vip' ? 'text-slate-900 font-medium bg-fuchsia-50/40' : 'text-slate-600'}`}>{perk.vip}</td>
-                  <td className={`px-3 py-3 pr-6 ${isSuper ? 'text-slate-900 font-medium bg-amber-50/50' : 'text-slate-600'}`}>{perk.supervip}</td>
+              {PERK_ROWS.map(perk => (
+                <tr key={perk.key}>
+                  <td className="px-4 sm:px-6 py-3 font-medium text-slate-800 whitespace-nowrap">{perk.label}</td>
+                  {tiers.map(item => (
+                    <td key={item.id} className={`px-3 py-3 ${item.id === myTierId ? 'text-slate-900 font-semibold bg-indigo-50/50' : 'text-slate-600'}`}>
+                      {perkText(item, perk.key)}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>

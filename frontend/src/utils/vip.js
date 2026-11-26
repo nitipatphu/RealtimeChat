@@ -1,5 +1,4 @@
-export const VIP_NAMES = { vip: 'VIP', supervip: 'SUPER VIP' };
-export const TIER_NAMES = { none: 'ทั่วไป', vip: 'VIP', supervip: 'SUPER VIP' };
+export const NO_TIER = 'none';
 
 export const VIP_THEMES = [
   { id: 'sakura', label: 'Sakura', dark: false, colors: ['#fff7fb', '#ffffff', '#ec4899'] },
@@ -9,9 +8,7 @@ export const VIP_THEMES = [
 ];
 
 let tierSettings = {
-  none: { fileMB: 5, presetThemes: [], customTheme: false },
-  vip: { fileMB: 25, presetThemes: ['sakura', 'midnight'], customTheme: true },
-  supervip: { fileMB: 50, presetThemes: ['sakura', 'midnight', 'ocean', 'forest'], customTheme: true }
+  none: { id: 'none', name: 'ทั่วไป', icon: '', color: '#64748b', rank: 0, fileMB: 5, presetThemes: [], customTheme: false }
 };
 
 export function setTierSettings(next) {
@@ -22,15 +19,44 @@ export function getTierSettings() {
   return tierSettings;
 }
 
+export function getTierList() {
+  const list = Object.keys(tierSettings).map(id => tierSettings[id]);
+  list.sort((a, b) => a.rank - b.rank);
+  return list;
+}
+
+export function getVipTierList() {
+  return getTierList().filter(tier => tier.id !== NO_TIER);
+}
+
+export function getTierInfo(tierId) {
+  if (tierSettings[tierId]) return tierSettings[tierId];
+  return tierSettings[NO_TIER];
+}
+
+export function getTierName(tierId) {
+  if (tierSettings[tierId]) return tierSettings[tierId].name;
+  return 'VIP';
+}
+
+export function getBiggestFileMB() {
+  let biggest = 0;
+  getTierList().forEach(tier => {
+    if (tier.fileMB > biggest) biggest = tier.fileMB;
+  });
+  return biggest;
+}
+
 export function getVipTier(user) {
   if (!user || !user.vip) return null;
-  if (user.vip.tier !== 'vip' && user.vip.tier !== 'supervip') return null;
+  if (!user.vip.tier || user.vip.tier === NO_TIER) return null;
+  if (!tierSettings[user.vip.tier]) return null;
   if (user.vip.expiresAt && new Date(user.vip.expiresAt).getTime() <= Date.now()) return null;
   return user.vip.tier;
 }
 
 export function getPerks(user) {
-  return tierSettings[getVipTier(user) || 'none'];
+  return getTierInfo(getVipTier(user) || NO_TIER);
 }
 
 export function canUseTheme(user, themeId) {
@@ -43,17 +69,26 @@ export function canUseTheme(user, themeId) {
 }
 
 export function lowestTierFor(themeId) {
-  if (tierSettings.none.presetThemes.includes(themeId)) return 'none';
-  if (tierSettings.vip.presetThemes.includes(themeId)) return 'vip';
-  if (tierSettings.supervip.presetThemes.includes(themeId)) return 'supervip';
+  const list = getTierList();
+  for (let i = 0; i < list.length; i++) {
+    if (list[i].presetThemes.includes(themeId)) return list[i].id;
+  }
   return null;
 }
 
-export function vipNameClass(user) {
+export function tierGradient(color) {
+  return 'linear-gradient(90deg, ' + color + ', ' + mixColor(color, '#6366f1', 0.45) + ')';
+}
+
+export function vipNameStyle(user) {
   const tier = getVipTier(user);
-  if (tier === 'supervip') return 'bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent';
-  if (tier === 'vip') return 'bg-gradient-to-r from-fuchsia-500 to-indigo-500 bg-clip-text text-transparent';
-  return '';
+  if (!tier) return null;
+  return {
+    backgroundImage: tierGradient(getTierInfo(tier).color),
+    WebkitBackgroundClip: 'text',
+    backgroundClip: 'text',
+    color: 'transparent'
+  };
 }
 
 function toRgb(hex) {

@@ -87,7 +87,7 @@ flowchart TD
 
 ## ER Diagram
 
-ทั้งหมดมี 40 ตาราง แบ่งเป็น 5 ส่วนให้ดูง่าย
+ทั้งหมดมี 42 ตาราง แบ่งเป็น 5 ส่วนให้ดูง่าย
 
 PK = Primary Key, FK = Foreign Key
 
@@ -106,6 +106,9 @@ erDiagram
     users ||--o{ clips : "เก็บคลิป"
     users ||--o{ notifications : "ได้รับ"
     users ||--o{ admin_logs : "ทำรายการ"
+    tier_settings ||--o{ user_vip : "ระดับของ VIP"
+    tier_settings ||--o{ vip_codes : "ระดับของรหัส"
+    users ||--o{ daily_active_users : "เข้าใช้วันไหน"
 
     users {
         text id PK
@@ -149,13 +152,17 @@ erDiagram
     }
     tier_settings {
         text tier PK
+        text name
+        text icon
+        text color
+        int rank
         int file_mb
         text_array preset_themes
         boolean custom_theme
     }
     user_vip {
         text user_id PK, FK
-        text tier
+        text tier FK
         timestamptz since
         timestamptz expires_at
         text granted_by FK
@@ -164,7 +171,7 @@ erDiagram
     }
     vip_codes {
         text code PK
-        text tier
+        text tier FK
         int days
         int max_uses
         text note
@@ -203,9 +210,19 @@ erDiagram
         text text
         timestamptz created_at
     }
+    daily_active_users {
+        date day PK
+        text user_id PK, FK
+    }
+    daily_peak_online {
+        date day PK
+        int peak
+        timestamptz peak_at
+    }
 ```
 
-`tier_settings` ไม่ได้ต่อกับตารางไหน เป็นตารางตั้งค่าว่า VIP แต่ละระดับอัปโหลดไฟล์ได้กี่ MB และใช้ธีมอะไรได้
+- `tier_settings` เก็บระดับ VIP ทุกระดับ (Admin สร้างเพิ่มได้) แต่ละระดับมีชื่อ ไอคอน สี ลำดับ ขนาดไฟล์ (1–1000 MB) และธีมที่ใช้ได้ แถว `none` คือผู้ใช้ทั่วไป
+- `daily_active_users` และ `daily_peak_online` เก็บสถิติการใช้งานรายวัน ใช้ในแท็บ "สถานะการใช้งาน"
 
 ### ส่วนที่ 2 กลุ่ม Role และการดูแลกลุ่ม
 

@@ -6,10 +6,11 @@ import { getMemberRole } from '../utils/permissions.js';
 import { toGroupSummary, GROUP_SUMMARY_SQL } from '../utils/groupView.js';
 import { sendGroupUpdate, sendGroupDeleted, sendToUser, sendToEveryone } from '../utils/socketEvents.js';
 import { makeAvatar, cleanEmail } from '../utils/id.js';
-import { findUserById, toIso } from '../models/userModel.js';
+import { findUserById, findUsersByIds, toIso } from '../models/userModel.js';
 import { loadGroup, getGroupLogs, listChannels } from '../models/groupModel.js';
 import { removeUserEverywhere } from './userController.js';
 import { createGroupRecords } from './groupController.js';
+import { getUsageDays, getUsageRecord, getTrackingStart } from '../utils/usage.js';
 
 const SYSTEM_ROLES = ['administrator', 'staff', 'member'];
 const ROLE_NAMES = { administrator: 'Administrator', staff: 'Staff', member: 'Member' };
@@ -73,14 +74,19 @@ export const getStats = async (req, res) => {
             count(*) FILTER (WHERE system_role = 'staff') AS staff,
             count(*) FILTER (WHERE system_role = 'member') AS member,
             count(*) FILTER (WHERE account_status = 'suspended') AS suspended,
-            (SELECT count(*) FROM user_vip WHERE tier = 'vip' AND expires_at > now()) AS vip,
-            (SELECT count(*) FROM user_vip WHERE tier = 'supervip' AND expires_at > now()) AS supervip
+            (SELECT count(*) FROM user_vip WHERE expires_at > now()) AS vip
      FROM users`
   );
   const groups = await getOne(
     "SELECT count(*) AS total, count(*) FILTER (WHERE visibility = 'public') AS public, count(*) FILTER (WHERE visibility = 'private') AS private FROM groups"
   );
   const messages = await getOne('SELECT count(*) AS total FROM messages');
+  const vipRows = await getMany(
+    `SELECT t.tier, t.name, t.icon, count(v.user_id) AS total
+     FROM tier_settings t LEFT JOIN user_vip v ON v.tier = t.tier AND v.expires_at > now()
+     WHERE t.tier <> 'none' GROUP BY t.tier, t.name, t.icon, t.rank ORDER BY t.rank`
+  );
+  const vipByTier = vipRows.map(row => ({ id: row.tier, name: row.name, icon: row.icon, count: Number(row.total) }));
 
   const counts = await groupMessageCounts();
   const groupRows = await getMany('SELECT g.id, g.name, g.color, g.visibility, (SELECT count(*) FROM group_members m WHERE m.group_id = g.id) AS member_count FROM groups g');
@@ -103,7 +109,8 @@ export const getStats = async (req, res) => {
     messages: { total: Number(messages.total) },
     messageActivity: await fillDays('SELECT ' + DAY_SQL + " AS day, count(*) AS total FROM messages WHERE created_at > now() - interval '15 days' GROUP BY 1"),
     signupActivity: await fillDays('SELECT ' + DAY_SQL + " AS day, count(*) AS total FROM users WHERE created_at > now() - interval '15 days' GROUP BY 1"),
-    topGroups: topGroups
+    topGroups: topGroups,
+    vipByTier: vipByTier
   });
 };
 
@@ -531,4 +538,36 @@ export const setSystemRole = async (req, res) => {
   const updated = await findUserById(user.id);
   sendToEveryone(req, 'user:updated', updated);
   res.json(updated);
+};
+
+export const getUsage = async (req, res) => {
+  const onlineUsers = req.app.get('onlineUsers') || {};
+  const onlineIds = Object.keys(onlineUsers);
+  const people = await findUsersByIds(onlineIds);
+
+  const days = await getUsageDays(14);
+  const today = days[days.length - 1];
+
+  let busiestDay = days[0];
+  days.forEach(day => {
+    if (day.active > busiestDay.active) busiestDay = day;
+  });
+
+  const online = people.map(user => ({
+    id: user.id,
+    name: user.name,
+    avatar: user.avatar,
+    systemRole: user.systemRole,
+    presence: user.presence
+  }));
+
+  res.json({
+    onlineNow: online.length,
+    online: online,
+    today: today,
+    busiestDay: busiestDay,
+    record: await getUsageRecord(),
+    trackingSince: await getTrackingStart(),
+    days: days
+  });
 };

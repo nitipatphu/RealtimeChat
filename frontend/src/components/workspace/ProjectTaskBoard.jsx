@@ -8,6 +8,7 @@ import Icon from '../ui/Icon';
 import { IconButton } from '../ui/Button';
 import Button from '../ui/Button';
 import { inputBaseClass } from '../ui/Form';
+import { askConfirm } from '../../utils/dialog';
 
 function AssigneeStack({ people }) {
   if (people.length === 0) return null;
@@ -104,8 +105,9 @@ export default function ProjectTaskBoard({ project, members, setProjects, readOn
     setNewColumnTitle('');
   };
 
-  const handleDeleteColumn = (colId) => {
-    if (!window.confirm('ยืนยันการลบคอลัมน์นี้? งานทั้งหมดในคอลัมน์นี้จะหายไปด้วย')) return;
+  const handleDeleteColumn = async (colId) => {
+    const confirmed = await askConfirm('ยืนยันการลบคอลัมน์นี้? งานทั้งหมดในคอลัมน์นี้จะหายไปด้วย');
+    if (!confirmed) return;
     updateThisProject(p => ({
       ...p,
       columns: p.columns.filter(c => c.id !== colId),

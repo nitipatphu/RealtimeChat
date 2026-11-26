@@ -11,6 +11,7 @@ export default defineConfig({
 
   server: {
     host: '0.0.0.0',
+    allowedHosts: ['.trycloudflare.com','cyberdv.thddns.net'],
     proxy: {
       '/api': {
         target: 'http://backend:4000',

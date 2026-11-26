@@ -13,6 +13,7 @@ import { mergeMessages, getOldestTime, getLastId } from '../../utils/messages';
 import Icon from '../ui/Icon';
 import { IconButton } from '../ui/Button';
 import { getMemberIds, canSeeProject, getDisplayName, hasPermission, getTimeoutUntil } from '../../utils/permissions';
+import { showError, askConfirm } from '../../utils/dialog';
 
 function changeList(setMessageData, change) {
   setMessageData(prev => ({ channelId: prev.channelId, list: change(prev.list), hasMore: prev.hasMore }));
@@ -148,12 +149,13 @@ export default function ProjectChat({ project, group, initialChannelId, currentU
       setActiveProjChannelId(data.id);
       setNewChannelName('');
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
   const handleDeleteChannel = async (channelId) => {
-    if (!window.confirm('ยืนยันการลบห้องนี้? ข้อความทั้งหมดในห้องจะหายไป')) return;
+    const confirmed = await askConfirm('ยืนยันการลบห้องนี้? ข้อความทั้งหมดในห้องจะหายไป');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', projectUrl + '/channels/' + channelId);
       setChannels(prev => prev.filter(c => c.id !== channelId));
@@ -161,7 +163,7 @@ export default function ProjectChat({ project, group, initialChannelId, currentU
         setActiveProjChannelId(null);
       }
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -174,7 +176,7 @@ export default function ProjectChat({ project, group, initialChannelId, currentU
       saveMessageLocally(data);
       return true;
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
       return false;
     }
   };
@@ -185,19 +187,20 @@ export default function ProjectChat({ project, group, initialChannelId, currentU
       saveMessageLocally(data);
       return true;
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
       return false;
     }
   };
 
   const deleteMessage = async (msgId) => {
-    if (!window.confirm('ยืนยันการลบข้อความนี้?')) return;
+    const confirmed = await askConfirm('ยืนยันการลบข้อความนี้?');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', messageUrl + '/' + msgId);
       changeList(setMessageData, prev => prev.filter(m => m.id !== msgId && m.parentId !== msgId));
       if (activeThreadId === msgId) setActiveThreadId(null);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -206,7 +209,7 @@ export default function ProjectChat({ project, group, initialChannelId, currentU
       const data = await apiSend('POST', messageUrl + '/' + msgId + '/reactions', { emoji: emoji });
       saveMessageLocally(data);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -218,7 +221,7 @@ export default function ProjectChat({ project, group, initialChannelId, currentU
       rememberPosition();
       setMessageData(prev => ({ channelId: prev.channelId, list: mergeMessages(prev.list, data.messages), hasMore: data.hasMore }));
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     } finally {
       setLoadingOlder(false);
     }
@@ -230,7 +233,7 @@ export default function ProjectChat({ project, group, initialChannelId, currentU
       saveMessageLocally(data);
       return true;
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
       return false;
     }
   };
@@ -240,7 +243,7 @@ export default function ProjectChat({ project, group, initialChannelId, currentU
       const data = await apiSend('POST', messageUrl + '/' + msgId + '/vote', { optionId: optionId });
       saveMessageLocally(data);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -250,7 +253,7 @@ export default function ProjectChat({ project, group, initialChannelId, currentU
       saveMessageLocally(data);
       setPinsKey(key => key + 1);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 

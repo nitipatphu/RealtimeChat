@@ -9,6 +9,7 @@ import { Field, inputClass, ErrorBox } from '../ui/Form';
 import { hasPermission, canSeeProject, getMemberIds } from '../../utils/permissions';
 import MemberList from './MemberList';
 import { copyText } from '../../utils/clipboard';
+import { showError, askConfirm } from '../../utils/dialog';
 
 function UnreadBadge({ count, mentions }) {
   if (mentions) {
@@ -212,12 +213,13 @@ export default function Sidebar({
   };
 
   const deleteChannel = async (channel) => {
-    if (!window.confirm('ลบ #' + channel.name + '? ข้อความทั้งหมดจะหายไป')) return;
+    const confirmed = await askConfirm('ลบ #' + channel.name + '? ข้อความทั้งหมดจะหายไป');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', '/channels/' + channel.id);
       setChannels(prev => prev.filter(c => c.id !== channel.id && c.parentId !== channel.id));
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -245,12 +247,13 @@ export default function Sidebar({
   };
 
   const deleteCategory = async (category) => {
-    if (!window.confirm('ลบหมวดหมู่ ' + category.name + '? Channel ข้างในจะไม่ถูกลบ แต่จะย้ายไปอยู่นอกหมวดหมู่')) return;
+    const confirmed = await askConfirm('ลบหมวดหมู่ ' + category.name + '? Channel ข้างในจะไม่ถูกลบ แต่จะย้ายไปอยู่นอกหมวดหมู่');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', '/groups/' + currentGroup.id + '/categories/' + category.id);
       setChannels(prev => prev.map(c => (c.categoryId === category.id ? { ...c, categoryId: null } : c)));
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -258,11 +261,12 @@ export default function Sidebar({
     const question = archived
       ? 'เก็บ Project ' + project.name + ' ถาวร? แชทและบอร์ดจะยังอยู่ ดูย้อนหลังได้ แต่แก้ไขหรือส่งข้อความไม่ได้'
       : 'นำ Project ' + project.name + ' ออกจากที่เก็บ? จะกลับมาใช้งานได้ตามปกติ';
-    if (!window.confirm(question)) return;
+    const confirmed = await askConfirm(question);
+    if (!confirmed) return;
     try {
       await apiSend('PUT', '/groups/' + currentGroup.id + '/projects/' + project.id + '/archive', { archived: archived });
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -292,12 +296,13 @@ export default function Sidebar({
   };
 
   const deleteProject = async (project) => {
-    if (!window.confirm('ลบ Project ' + project.name + '? แชทและบอร์ดงานจะหายไปทั้งหมด')) return;
+    const confirmed = await askConfirm('ลบ Project ' + project.name + '? แชทและบอร์ดงานจะหายไปทั้งหมด');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', '/groups/' + currentGroup.id + '/projects/' + project.id);
       onProjectDeleted(project.id);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 

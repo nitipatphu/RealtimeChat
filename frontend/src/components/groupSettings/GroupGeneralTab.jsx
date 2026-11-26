@@ -7,6 +7,7 @@ import { Field, ErrorBox, inputClass, textareaClass } from '../ui/Form';
 import { VisibilityPicker } from '../lobby/CreateGroupModal';
 import { hasPermission, ROLE_COLORS } from '../../utils/permissions';
 import { copyText } from '../../utils/clipboard';
+import { askConfirm } from '../../utils/dialog';
 
 function iconButtonLabel(uploading, hasIcon) {
   if (uploading) return 'กำลังอัปโหลด...';
@@ -54,7 +55,8 @@ export default function GroupGeneralTab({ group, currentUser, showSaved }) {
   };
 
   const handleRemoveIcon = async () => {
-    if (!window.confirm('ลบรูปไอคอนกลุ่มและกลับไปใช้ตัวอักษร?')) return;
+    const confirmed = await askConfirm('ลบรูปไอคอนกลุ่มและกลับไปใช้ตัวอักษร?');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', '/groups/' + group.id + '/icon');
       showSaved();
@@ -99,7 +101,8 @@ export default function GroupGeneralTab({ group, currentUser, showSaved }) {
   };
 
   const newCode = async () => {
-    if (!window.confirm('สร้างรหัสเชิญใหม่? รหัสเดิมจะใช้ไม่ได้อีก')) return;
+    const confirmed = await askConfirm('สร้างรหัสเชิญใหม่? รหัสเดิมจะใช้ไม่ได้อีก');
+    if (!confirmed) return;
     try {
       await apiSend('POST', '/groups/' + group.id + '/invite-code', {});
       showSaved();

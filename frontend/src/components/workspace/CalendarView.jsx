@@ -7,6 +7,7 @@ import Avatar from '../ui/Avatar';
 import { Field, inputClass, textareaClass, ErrorBox } from '../ui/Form';
 import { canSeeProject, hasPermission, getDisplayName } from '../../utils/permissions';
 import { getAssigneeIds } from '../../utils/tasks';
+import { showError, askConfirm } from '../../utils/dialog';
 
 const MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
 const WEEKDAYS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
@@ -179,11 +180,12 @@ export default function CalendarView({ group, currentUser, users, readOnly, init
   };
 
   const deleteEvent = async (event) => {
-    if (!window.confirm('ลบนัด "' + event.title + '"?')) return;
+    const confirmed = await askConfirm('ลบนัด "' + event.title + '"?');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', '/groups/' + group.id + '/events/' + event.id);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 

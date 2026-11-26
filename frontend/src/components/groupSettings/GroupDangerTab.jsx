@@ -5,6 +5,7 @@ import Button from '../ui/Button';
 import { ErrorBox } from '../ui/Form';
 import UserPicker from '../ui/UserPicker';
 import { getMemberIds } from '../../utils/permissions';
+import { askConfirm, askText } from '../../utils/dialog';
 
 function DangerRow({ title, text, children }) {
   return (
@@ -26,7 +27,8 @@ export default function GroupDangerTab({ group, currentUser, users, onLeft, show
   const others = (users || []).filter(u => getMemberIds(group).includes(u.id) && u.id !== currentUser.id);
 
   const handleLeave = async () => {
-    if (!window.confirm('ออกจากกลุ่ม ' + group.name + '?')) return;
+    const confirmed = await askConfirm('ออกจากกลุ่ม ' + group.name + '?');
+    if (!confirmed) return;
     try {
       await apiSend('POST', '/groups/' + group.id + '/leave', {});
       onLeft();
@@ -38,7 +40,8 @@ export default function GroupDangerTab({ group, currentUser, users, onLeft, show
   const handleTransfer = async () => {
     const newOwner = others.find(u => u.id === newOwnerId);
     if (!newOwner) return;
-    if (!window.confirm('โอนความเป็นเจ้าของให้ ' + newOwner.name + '? คุณจะได้ Role ที่สูงที่สุดรองลงมาแทน')) return;
+    const confirmed = await askConfirm('โอนความเป็นเจ้าของให้ ' + newOwner.name + '? คุณจะได้ Role ที่สูงที่สุดรองลงมาแทน');
+    if (!confirmed) return;
     try {
       await apiSend('POST', '/groups/' + group.id + '/transfer', { newOwnerId: newOwnerId });
       setNewOwnerId('');
@@ -49,7 +52,7 @@ export default function GroupDangerTab({ group, currentUser, users, onLeft, show
   };
 
   const handleDelete = async () => {
-    const typed = window.prompt('พิมพ์ชื่อกลุ่ม "' + group.name + '" เพื่อยืนยันการลบ');
+    const typed = await askText('พิมพ์ชื่อกลุ่ม "' + group.name + '" เพื่อยืนยันการลบ');
     if (typed === null) return;
     if (typed !== group.name) {
       setError('ชื่อกลุ่มไม่ตรง ยกเลิกการลบ');

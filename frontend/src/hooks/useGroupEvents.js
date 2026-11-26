@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import socket from '../socket';
 import { isGroupMember, canSeeProject } from '../utils/permissions';
+import { showAlert } from '../utils/dialog';
 
 export default function useGroupEvents({
   currentUser,
@@ -56,14 +57,14 @@ export default function useGroupEvents({
     const handleRemoved = (data) => {
       fetchMyGroups();
       if (!currentGroup || data.groupId !== currentGroup.id) return;
-      alert('คุณถูกนำออกจากกลุ่มนี้แล้ว');
+      showAlert('คุณถูกนำออกจากกลุ่มนี้แล้ว');
       closeCurrentGroup();
     };
 
     const handleDeleted = (data) => {
       fetchMyGroups();
       if (!currentGroup || data.groupId !== currentGroup.id) return;
-      alert('กลุ่มนี้ถูกลบแล้ว');
+      showAlert('กลุ่มนี้ถูกลบแล้ว');
       closeCurrentGroup();
     };
 

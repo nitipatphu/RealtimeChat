@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { IconButton } from './Button';
 import { useCloseOnBack } from '../../utils/backButton';
+import { isDialogOpen } from '../../utils/dialog';
 
 export default function Modal({ title, description, onClose, children, footer, width }) {
   useCloseOnBack(onClose);
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !isDialogOpen()) onClose();
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);

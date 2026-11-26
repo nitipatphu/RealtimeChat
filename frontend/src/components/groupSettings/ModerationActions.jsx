@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { apiSend } from '../../api';
 import Icon from '../ui/Icon';
 import { hasPermission, getTimeoutUntil } from '../../utils/permissions';
+import { showError, askText } from '../../utils/dialog';
 
 const TIMEOUT_OPTIONS = [
   { minutes: 5, label: '5 นาที' },
@@ -40,21 +41,21 @@ export default function ModerationActions({ group, memberId, memberName, current
     try {
       await apiSend('PUT', '/groups/' + group.id + '/members/' + memberId + '/timeout', { minutes: minutes });
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     } finally {
       setSaving(false);
     }
   };
 
   const ban = async () => {
-    const reason = window.prompt('แบน ' + memberName + ' ออกจากกลุ่ม?\nคนที่ถูกแบนจะกลับเข้ากลุ่มไม่ได้จนกว่าจะปลดแบน\n\nเหตุผล (ไม่บังคับ):', '');
+    const reason = await askText('แบน ' + memberName + ' ออกจากกลุ่ม?\nคนที่ถูกแบนจะกลับเข้ากลุ่มไม่ได้จนกว่าจะปลดแบน\n\nเหตุผล (ไม่บังคับ):', '');
     if (reason === null) return;
     setSaving(true);
     try {
       await apiSend('POST', '/groups/' + group.id + '/bans', { memberId: memberId, reason: reason });
       if (onDone) onDone();
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
       setSaving(false);
     }
   };

@@ -27,6 +27,7 @@ import SearchModal from './components/modals/SearchModal';
 import UserProfileModal from './components/modals/UserProfileModal';
 import Icon from './components/ui/Icon';
 import BlockedContext from './blockedContext';
+import { showAlert, showError, askConfirm, isDialogOpen, closeDialog } from './utils/dialog';
 
 function getSavedUser() {
   const saved = localStorage.getItem('user');
@@ -150,7 +151,7 @@ export default function App() {
       const data = await apiSend('PUT', '/users/' + currentUser.id + '/mute', { key: key, muted: !muted });
       handleUserUpdated(data.user);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -185,7 +186,7 @@ export default function App() {
         showToast('ปลดบล็อกแล้ว', 'คุณจะเห็นข้อความของผู้ใช้นี้ตามปกติ', null);
       }
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -227,7 +228,7 @@ export default function App() {
       fetchUnread(group.id);
     } catch (error) {
       setChannels([]);
-      alert(error.message);
+      showError(error.message);
     }
   };
 
@@ -245,7 +246,7 @@ export default function App() {
       const group = await apiGet('/groups/' + groupId + '/inspect');
       openGroup(group, !isGroupMember(group, currentUser.id));
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -291,7 +292,7 @@ export default function App() {
       const data = await apiSend('PUT', '/users/' + currentUser.id + '/presence', { presence: presence });
       handleUserUpdated(data.user);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -326,12 +327,13 @@ export default function App() {
 
   const handleLeaveGroupFromMenu = async () => {
     if (!currentGroup) return;
-    if (!window.confirm('ออกจากกลุ่ม ' + currentGroup.name + '?')) return;
+    const confirmed = await askConfirm('ออกจากกลุ่ม ' + currentGroup.name + '?');
+    if (!confirmed) return;
     try {
       await apiSend('POST', '/groups/' + currentGroup.id + '/leave', {});
       closeCurrentGroup();
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -366,6 +368,10 @@ export default function App() {
   };
 
   const goBack = () => {
+    if (isDialogOpen()) {
+      closeDialog();
+      return true;
+    }
     if (closeTopPanel()) return true;
     if (mobileNavOpen) {
       setMobileNavOpen(false);
@@ -417,7 +423,7 @@ export default function App() {
   };
 
   const handleSuspended = (data) => {
-    alert('บัญชีของคุณถูกระงับหรือถูกลบโดยผู้ดูแลระบบ' + (data && data.reason ? '\nเหตุผล: ' + data.reason : ''));
+    showAlert('บัญชีของคุณถูกระงับหรือถูกลบโดยผู้ดูแลระบบ' + (data && data.reason ? '\nเหตุผล: ' + data.reason : ''));
     handleLogout();
   };
 
@@ -440,7 +446,7 @@ export default function App() {
           fetchMyGroups();
           openGroup(data.group);
         })
-        .catch(err => alert('เข้าร่วมกลุ่มไม่สำเร็จ: ' + err.message));
+        .catch(err => showError('เข้าร่วมกลุ่มไม่สำเร็จ: ' + err.message));
     }
 
     apiGet('/groups')

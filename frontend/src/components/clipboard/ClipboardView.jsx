@@ -7,6 +7,7 @@ import { PageHeader, EmptyState } from '../ui/Card';
 import { Field, ErrorBox, inputClass, inputBaseClass, textareaClass } from '../ui/Form';
 import { timeAgo } from '../../utils/format';
 import { copyText } from '../../utils/clipboard';
+import { showAlert, showError, askConfirm } from '../../utils/dialog';
 
 function ClipModal({ clip, currentUser, onClose, onSaved }) {
   const [title, setTitle] = useState(clip ? clip.title : '');
@@ -72,7 +73,7 @@ export default function ClipboardView({ currentUser }) {
         setClips(data);
         setLoaded(true);
       })
-      .catch(err => alert(err.message));
+      .catch(err => showError(err.message));
   }, [currentUser.id, reloadKey]);
 
   const reload = () => setReloadKey(reloadKey + 1);
@@ -88,17 +89,18 @@ export default function ClipboardView({ currentUser }) {
       await apiSend('PUT', '/users/' + currentUser.id + '/clips/' + clip.id, { pinned: !clip.pinned });
       reload();
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
   const remove = async (clip) => {
-    if (!window.confirm('ลบ "' + (clip.title || clip.text.slice(0, 30)) + '" ออกจากคลิปบอร์ด?')) return;
+    const confirmed = await askConfirm('ลบ "' + (clip.title || clip.text.slice(0, 30)) + '" ออกจากคลิปบอร์ด?');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', '/users/' + currentUser.id + '/clips/' + clip.id);
       reload();
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -106,7 +108,7 @@ export default function ClipboardView({ currentUser }) {
     try {
       const text = await navigator.clipboard.readText();
       if (!text.trim()) {
-        alert('คลิปบอร์ดของเครื่องว่างอยู่');
+        showAlert('คลิปบอร์ดของเครื่องว่างอยู่');
         return;
       }
       await apiSend('POST', '/users/' + currentUser.id + '/clips', { title: '', text: text });

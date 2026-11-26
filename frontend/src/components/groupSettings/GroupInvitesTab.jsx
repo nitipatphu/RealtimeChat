@@ -8,6 +8,7 @@ import { Field, ErrorBox, inputClass } from '../ui/Form';
 import { hasPermission } from '../../utils/permissions';
 import { formatDateTime } from '../../utils/format';
 import { copyText } from '../../utils/clipboard';
+import { showError } from '../../utils/dialog';
 
 const EXPIRE_OPTIONS = [
   { value: 30, label: '30 นาที' },
@@ -72,7 +73,7 @@ export default function GroupInvitesTab({ group, currentUser, users, readOnly })
     try {
       await apiSend('DELETE', '/groups/' + group.id + '/invites/' + code);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 

@@ -3,7 +3,7 @@ import Card from '../ui/Card';
 import Icon from '../ui/Icon';
 import { Toggle } from '../ui/Form';
 import { loadSettings, saveSettings, playSound } from '../../settings';
-import { VIP_THEMES, TIER_NAMES, canUseTheme, lowestTierFor } from '../../utils/vip';
+import { VIP_THEMES, getTierName, canUseTheme, lowestTierFor } from '../../utils/vip';
 import CustomThemeCard from './CustomThemeCard';
 
 function ToggleRow({ title, desc, checked, onChange, extra }) {
@@ -164,7 +164,7 @@ export function AppearanceTab({ showSaved, currentUser, onGoVip, onUserUpdated }
                 key={theme.id}
                 selected={settings.theme === theme.id && allowed}
                 onClick={() => (allowed ? update('theme', theme.id) : onGoVip())}
-                label={theme.label + (allowed || !lowestTierFor(theme.id) ? '' : ' · ' + TIER_NAMES[lowestTierFor(theme.id)])}
+                label={theme.label + (allowed || !lowestTierFor(theme.id) ? '' : ' · ' + getTierName(lowestTierFor(theme.id)))}
                 preview={preview}
               />
             );

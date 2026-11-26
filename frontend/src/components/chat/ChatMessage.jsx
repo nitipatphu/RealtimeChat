@@ -8,10 +8,11 @@ import Avatar from '../ui/Avatar';
 import Icon from '../ui/Icon';
 import { IconButton } from '../ui/Button';
 import { RoleBadge, VipBadge } from '../ui/Badge';
-import { vipNameClass } from '../../utils/vip';
+import { vipNameStyle } from '../../utils/vip';
 import { textareaClass } from '../ui/Form';
 import { formatTime, formatSize, timeAgo } from '../../utils/format';
 import { getDisplayName, getMemberRole } from '../../utils/permissions';
+import { showError } from '../../utils/dialog';
 
 function AttachmentList({ attachments }) {
   if (!attachments || attachments.length === 0) return null;
@@ -172,7 +173,7 @@ export default function ChatMessage({
       setClipSaved(true);
       setTimeout(() => setClipSaved(false), 2000);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -233,7 +234,7 @@ export default function ChatMessage({
       <div className="flex-1 min-w-0">
         {showHeader && (
           <div className="flex items-center gap-2 flex-wrap">
-            <button type="button" onClick={openProfile} className={`text-sm font-semibold hover:underline ${vipNameClass(author) || 'text-slate-900'}`}>
+            <button type="button" onClick={openProfile} className="text-sm font-semibold hover:underline text-slate-900" style={vipNameStyle(author)}>
               {authorName}
             </button>
             {author && <VipBadge user={author} size="icon" />}

@@ -62,7 +62,7 @@ Project/
 │   ├── nodemon.json            ตั้งค่าให้รีสตาร์ต server เองเมื่อแก้โค้ด
 │   ├── package.json
 │   ├── database/
-│   │   ├── schema.sql          โครงสร้างตาราง 40 ตาราง (ไฟล์ออกแบบ)
+│   │   ├── schema.sql          โครงสร้างตาราง 42 ตาราง (ไฟล์ออกแบบ)
 │   │   └── database.sql        โครงสร้าง + ข้อมูลทั้งหมด (Docker โหลดไฟล์นี้)
 │   ├── uploads/                ไฟล์ที่ผู้ใช้อัปโหลด (รูปโปรไฟล์อยู่ชั้นนอก ไฟล์แนบอยู่ใน files/)
 │   └── src/
@@ -124,7 +124,16 @@ DB_NAME=realtimecheat_app
 ถ้าจะรัน backend นอก Docker ต้องเปลี่ยน `DB_HOST=localhost` และ `DB_PORT=5433`
 
 ### frontend/vite.config.js
-ตั้ง `proxy` ให้ request ที่ขึ้นต้นด้วย `/api`, `/uploads`, `/socket.io` ถูกส่งต่อไปที่ `http://backend:4000` หน้าเว็บจึงเรียก API แบบ `/api/...` ได้เลยโดยไม่ต้องใส่ที่อยู่ backend
+- ตั้ง `proxy` ให้ request ที่ขึ้นต้นด้วย `/api`, `/uploads`, `/socket.io` ถูกส่งต่อไปที่ `http://backend:4000` หน้าเว็บจึงเรียก API แบบ `/api/...` ได้เลยโดยไม่ต้องใส่ที่อยู่ backend
+- `allowedHosts: ['.trycloudflare.com', 'cyberdv.thddns.net']` อนุญาตให้เปิดเว็บผ่านโดเมนเหล่านี้ได้ (Vite จะบล็อกโดเมนที่ไม่รู้จัก)
+
+### เปิดเว็บให้คนอื่นเข้าได้ (Cloudflare Quick Tunnel)
+ใช้ได้ฟรี ไม่ต้องมีโดเมน ไม่ต้องสมัครบัญชี
+1. ลงโปรแกรมครั้งเดียว: `winget install Cloudflare.cloudflared`
+2. เปิด Docker ไว้ แล้วสั่ง `cloudflared tunnel --url http://localhost:5173`
+3. จะได้ลิงก์ `https://xxxx.trycloudflare.com` ส่งให้คนอื่นเข้าได้เลย
+
+ข้อจำกัด: ลิงก์เปลี่ยนทุกครั้งที่เปิดใหม่, ต้องเปิดคอมไว้ตลอด, และ Cloudflare แบบฟรีรับไฟล์อัปโหลดได้ไม่เกินประมาณ 100 MB ต่อครั้ง
 
 ### backend/nodemon.json
 ดูเฉพาะโฟลเดอร์ `src` ถ้าไฟล์เปลี่ยนจะรีสตาร์ต server เอง ไม่ดูโฟลเดอร์ `uploads` (ไม่งั้นอัปโหลดไฟล์ทีไร server รีสตาร์ตทุกที)
@@ -142,7 +151,14 @@ DB_NAME=realtimecheat_app
    - `join-group` เข้าห้อง `group:<id>` (เช็คก่อนว่าเป็นสมาชิกหรือเป็น admin)
    - `typing` ส่งต่อว่า "กำลังพิมพ์..." ไปหาคนในห้อง
    - `logout` / `disconnect` ออกจากห้อง และลดจำนวนออนไลน์
-5. เช็คว่าต่อฐานข้อมูลได้ (`checkConnection`) ถ้าได้ค่อยเริ่มงานเบื้องหลัง (`startReminders`, `startScheduler`) แล้วเปิด server ถ้าต่อไม่ได้จะปิดโปรแกรม
+5. ทุกครั้งที่มีคน `identify` จะเรียก `recordUsage` บันทึกสถิติการใช้งาน (ดู `utils/usage.js`)
+6. เช็คว่าต่อฐานข้อมูลได้ (`checkConnection`) ถ้าได้จะ
+   - สร้างตารางสถิติการใช้งานถ้ายังไม่มี (`createUsageTables`)
+   - อัปเดตตารางระดับ VIP ให้เป็นแบบใหม่ (`updateTierTable`)
+   - เริ่มงานเบื้องหลัง (`startReminders`, `startScheduler`) แล้วเปิด server
+
+   ถ้าต่อฐานข้อมูลไม่ได้จะปิดโปรแกรม
+7. ตั้ง `server.requestTimeout` เป็น 30 นาที ให้อัปโหลดไฟล์ใหญ่ได้โดยไม่ถูกตัดกลางทาง
 
 ### 4.2 app.js (ตั้งค่า Express)
 - ปิด header `x-powered-by` และเพิ่ม header ความปลอดภัย (`nosniff`, `X-Frame-Options: DENY`)
@@ -172,7 +188,7 @@ middleware คือฟังก์ชันที่ทำงานก่อน
 | `adminMiddleware.js` | `requireStaff`, `requireAdmin` | เช็ค `system_role` ว่าเป็น staff/administrator ไหม |
 | `checkProjectAccess.js` | `checkProjectAccess` | โหลดกลุ่มและ project → เช็คว่าเห็น project นี้ได้ไหม → ใส่ `req.group`, `req.project` (admin ของระบบอ่านได้อย่างเดียว) |
 | `uploadMiddleware.js` | `handleAvatarUpload` | อัปโหลดรูปโปรไฟล์/ไอคอนกลุ่ม ไม่เกิน 2 MB เฉพาะ JPG PNG WEBP |
-| | `handleFileUpload` | อัปโหลดไฟล์แนบในแชท ขนาดสูงสุดขึ้นกับระดับ VIP |
+| | `handleFileUpload` | อัปโหลดไฟล์แนบในแชท ขนาดสูงสุดขึ้นกับระดับ VIP (Admin ตั้งได้ 1–1000 MB ต่อระดับ) |
 | | `isRealImage` | อ่าน 12 byte แรกของไฟล์ (magic number) ว่าเป็นรูปจริงไหม กันคนเปลี่ยนนามสกุลไฟล์ |
 | | `setUploadHeaders` | ไฟล์ที่ไม่ใช่รูปหรือ PDF ให้ดาวน์โหลดเท่านั้น ห้ามเปิดในเบราว์เซอร์ |
 | | `deleteUploadedFile` | ลบไฟล์ (เช็คว่า path อยู่ในโฟลเดอร์ uploads จริง กันลบไฟล์อื่นในเครื่อง) |
@@ -226,8 +242,9 @@ Express 5 จับ error จาก async function ให้เอง แล้�
 | `mentions.js` | `findMentions(text, members, allowEveryone)` หาว่าข้อความแท็กใคร (เรียงชื่อยาวก่อน กันชื่อ "มิ้น" ไปโดน "มิ้นท์") และรองรับ `@everyone` / `@ทุกคน` |
 | `moderation.js` | `isBanned`, `getTimeoutUntil`, `requireNotTimedOut`, `findInvite` (หาจากรหัสเชิญหลักของกลุ่มก่อน แล้วค่อยหาในลิงก์เชิญ), `isInviteUsable` |
 | `attachments.js` | `cleanAttachments` ตรวจไฟล์แนบที่หน้าเว็บส่งมา ต้องเป็น URL ที่ระบบสร้างเอง ต้องมีไฟล์อยู่จริง ไม่ซ้ำ ไม่เกิน 5 ไฟล์ |
-| `vip.js` | ระดับ VIP (`vip`, `supervip`), `getVipTier` (เช็ควันหมดอายุ), `getTierSettings` (อ่านจากตาราง tier_settings), `getPerks` (สิทธิพิเศษของ user), `canUseTheme`, `makeVipRecord` (ต่ออายุจากวันหมดอายุเดิมถ้าระดับเดียวกัน), `makeVipCode` (`VIP-XXXX-XXXX`), `formatThaiDate` (ปี พ.ศ.) |
+| `vip.js` | ระดับ VIP อ่านจากตาราง `tier_settings` ทั้งหมด (ไม่ได้ล็อกไว้ในโค้ด) และ `updateTierTable` เพิ่มคอลัมน์ชื่อ/ไอคอน/สี/ลำดับให้ฐานข้อมูลเดิมตอนเปิด server, `getVipTier` (เช็ควันหมดอายุ), `getTierSettings` (อ่านจากตาราง tier_settings), `getPerks` (สิทธิพิเศษของ user), `canUseTheme`, `makeVipRecord` (ต่ออายุจากวันหมดอายุเดิมถ้าระดับเดียวกัน), `makeVipCode` (`VIP-XXXX-XXXX`), `formatThaiDate` (ปี พ.ศ.) |
 | `logs.js` | `addGroupLog` (ประวัติในกลุ่ม), `addAdminLog` (ประวัติของ Admin/Staff) |
+| `usage.js` | เก็บสถิติการใช้งาน ทุกครั้งที่มีคนต่อ Socket (`identify`) จะบันทึกว่าวันนี้คนนี้เข้าใช้ (`daily_active_users`) และถ้าจำนวนคนออนไลน์พร้อมกันมากกว่าสถิติของวันนี้จะบันทึกใหม่ (`daily_peak_online`) ตารางสองตัวนี้ถูกสร้างเองตอนเปิด server (`CREATE TABLE IF NOT EXISTS`) |
 | `messages.js` | `getLastDays`, `toDateKey`, `addToDay` ใช้ทำกราฟรายวัน |
 | `reactions.js` | `ALLOWED_EMOJIS` อีโมจิ 40 ตัวที่อนุญาต |
 | `reminders.js` | งานเตือนงานใกล้ครบกำหนด, อีเวนต์วันนี้, VIP หมดอายุ, ลบ session เก่า, ลบไฟล์ที่ไม่ได้ใช้ (ดูหัวข้อ 7) |
@@ -376,7 +393,8 @@ controller คือโค้ดที่ทำงานจริงของแ
 | `createVipCode`, `deleteVipCode` | สร้าง/ลบรหัส VIP (กำหนดระดับ จำนวนวัน จำนวนครั้งที่ใช้ได้) |
 | `redeemVipCode` | ผู้ใช้กรอกรหัส เช็คว่ารหัสมีจริง, ไม่ได้ลดระดับ, ยังไม่เคยใช้, ยังไม่ครบจำนวน |
 | `checkVipExpiry` | ลบ VIP ที่หมดอายุ และเตือนล่วงหน้า 3 วัน |
-| `getSystemSettings`, `updateTierSettings` | ตั้งค่าว่าแต่ละระดับอัปโหลดได้กี่ MB และใช้ธีมไหนได้ |
+| `getSystemSettings` | ส่งรายการระดับ VIP ทั้งหมดให้หน้าเว็บ |
+| `createTier`, `updateTier`, `moveTier`, `deleteTier` | Admin สร้างระดับ VIP ใหม่ได้เอง กำหนดชื่อ ไอคอน สี ขนาดไฟล์ ธีม และลำดับความสูง (`rank`) ระดับที่สูงกว่าใช้รหัสของระดับที่ต่ำกว่าไม่ได้ |
 
 ### 4.8 routes/
 ไฟล์ใน routes ทำหน้าที่จับคู่ URL กับ controller อย่างเดียว เช่น
@@ -516,6 +534,7 @@ router.post('/:id/messages', addMessage);
 |---|---|---|---|
 | GET | `/admin/stats` | Admin | สถิติ |
 | GET | `/admin/my-work` | Staff | ผลงานของตัวเอง |
+| GET | `/admin/usage` | Staff | สถานะการใช้งาน: คนออนไลน์ตอนนี้, ผู้ใช้งานต่อวัน, ออนไลน์พร้อมกันสูงสุด |
 | GET | `/admin/team` | Admin | ทีม Staff |
 | GET | `/admin/users?page=&q=` | Staff | รายชื่อผู้ใช้แบบแบ่งหน้า |
 | GET | `/admin/users/search?q=&limit=` | Staff | ค้นผู้ใช้ |
@@ -529,7 +548,10 @@ router.post('/:id/messages', addMessage);
 | POST / PUT / DELETE | `/admin/groups(/:id)` | Admin | จัดการกลุ่ม |
 | GET | `/admin/logs` | Staff | Log |
 | GET | `/admin/vip` | Staff | ภาพรวม VIP |
-| PUT | `/admin/vip-settings` | Admin | ตั้งค่าระดับ VIP |
+| POST | `/admin/vip-tiers` | Admin | สร้างระดับ VIP ใหม่ (ชื่อ ไอคอน สี ขนาดไฟล์ ธีม) |
+| PUT | `/admin/vip-tiers/:tier` | Admin | แก้ไขระดับ |
+| PUT | `/admin/vip-tiers/:tier/move` | Admin | เลื่อนลำดับขึ้น/ลง (`direction: up / down`) |
+| DELETE | `/admin/vip-tiers/:tier` | Admin | ลบระดับ (ลบไม่ได้ถ้ายังมีคนเป็นระดับนี้ และลบระดับ "ทั่วไป" ไม่ได้) |
 | PUT / DELETE | `/admin/users/:id/vip` | Staff | ให้/ยกเลิก VIP |
 | POST | `/admin/vip-codes` | Staff | สร้างรหัส VIP |
 | DELETE | `/admin/vip-codes/:code` | Staff | ลบรหัส VIP |
@@ -594,7 +616,7 @@ router.post('/:id/messages', addMessage);
 
 ## 8. ฐานข้อมูล
 
-ใช้ PostgreSQL 17 มี 40 ตาราง รายละเอียดทุกคอลัมน์อยู่ใน `Diagram.md` (ER Diagram) และ `backend/database/schema.sql`
+ใช้ PostgreSQL 17 มี 42 ตาราง รายละเอียดทุกคอลัมน์อยู่ใน `Diagram.md` (ER Diagram) และ `backend/database/schema.sql`
 
 | กลุ่มตาราง | ตาราง |
 |---|---|
@@ -604,7 +626,7 @@ router.post('/:id/messages', addMessage);
 | Channel และข้อความ | channel_categories, channels, channel_allowed_roles, messages, message_attachments, message_mentions, message_reactions, poll_options, poll_votes |
 | แชทส่วนตัว | conversations, conversation_participants, scheduled_messages |
 | Project | projects, project_members, project_channels, board_columns, tasks, task_assignees, task_checklist_items, task_comments |
-| ระบบ | admin_logs |
+| ระบบ | admin_logs, daily_active_users, daily_peak_online |
 
 เรื่องที่ควรรู้
 - **id เป็น TEXT** ขึ้นต้นด้วยตัวบอกประเภท เช่น `u-` ผู้ใช้, `g-` กลุ่ม, `ch-` Channel, `m-` ข้อความ, `p-` Project อ่านแล้วรู้เลยว่าเป็น id ของอะไร
@@ -689,11 +711,12 @@ App.jsx เก็บ state ส่วนใหญ่ของแอป แล้�
 | `permissions.js` | ฟังก์ชันเช็คสิทธิ์ชุดเดียวกับ backend ใช้ซ่อน/แสดงปุ่ม (backend ยังเช็คซ้ำอีกรอบเสมอ) และ `getDisplayName` (ใช้ชื่อเล่นในกลุ่มถ้ามี) |
 | `format.js` | จัดรูปแบบเวลา `formatTime`, `formatDate`, `timeAgo` ("5 นาทีที่แล้ว"), `formatSize` (KB/MB), `dayLabel` ("วันนี้", "เมื่อวาน") |
 | `messages.js` | `mergeMessages` รวมข้อความเก่ากับใหม่ไม่ให้ซ้ำ, `getOldestTime`, `getLastId` |
-| `vip.js` | ชื่อระดับ, ธีม VIP, `getPerks`, `canUseTheme`, `buildCustomPalette` (สร้างชุดสีจากสีหลักที่ผู้ใช้เลือก) |
+| `vip.js` | เก็บรายการระดับ VIP ที่ได้จาก backend (`setTierSettings`), `getTierList` (เรียงตามลำดับ), `getTierInfo` / `getTierName`, `getPerks`, `canUseTheme`, `vipNameStyle` (สีชื่อแบบไล่สีตามสีของระดับ), `tierGradient`, `buildCustomPalette` (สร้างชุดสีจากสีหลักที่ผู้ใช้เลือก) |
 | `presence.js` | ชื่อสถานะภาษาไทย และ `getPresence` (ถ้าไม่ได้ต่อ Socket อยู่ถือว่าออฟไลน์) |
 | `constants.js` | รายการอีโมจิ และสีของความสำคัญงาน |
 | `backButton.js` | ปุ่มย้อนกลับ (อธิบายไว้ใน 9.2) |
-| `clipboard.js` | `copyText` คัดลอกข้อความ |
+| `clipboard.js` | `copyText` คัดลอกข้อความ ถ้าเว็บเป็น https ใช้ `navigator.clipboard` ถ้าไม่ใช่ (เช่นเปิดผ่าน http) ใช้วิธีสำรองด้วย `textarea` + `document.execCommand('copy')` ถ้ายังไม่ได้อีกจะเปิดกล่องให้กด Ctrl+C เอง |
+| `dialog.js` | กล่องข้อความ SweetAlert2 ใช้แทน `alert` / `confirm` / `prompt` ทั้งเว็บ: `showAlert`, `showError`, `showSuccess`, `askConfirm` (คืน true/false ถ้าข้อความมีคำว่า ลบ แบน ระงับ ฯลฯ ปุ่มจะเป็นสีแดง), `askText` (คืนข้อความหรือ null), `showCopyBox`, `isDialogOpen`, `closeDialog` |
 | `tasks.js` | `getAssigneeIds` อ่านรายชื่อผู้รับผิดชอบงาน |
 
 ### 9.5 components/
@@ -793,8 +816,9 @@ App.jsx เก็บ state ส่วนใหญ่ของแอป แล้�
 | `AdminGroupsTab.jsx` | จัดการกลุ่มทั้งระบบ |
 | `AdminTeamTab.jsx` | แต่งตั้ง/ถอด Staff ดูผลงาน |
 | `AdminVipTab.jsx` | ให้ VIP (ค้นหาด้วยอีเมล) สร้างรหัส VIP |
-| `TierSettingsCard.jsx` | ตั้งค่าแต่ละระดับ VIP |
+| `TierSettingsCard.jsx` | จัดการระดับ VIP: ตารางทุกระดับ, ปุ่ม "เพิ่มระดับ VIP" (ตั้งชื่อ ไอคอน สี ขนาดไฟล์ ธีม), แก้ไข, เลื่อนลำดับ ▲▼, ลบ (Staff ดูได้อย่างเดียว) |
 | `AdminLogsTab.jsx` | Log |
+| `UsageTab.jsx` | สถานะการใช้งาน (มีทั้งใน Admin และ Staff Dashboard): คนกำลังใช้งานตอนนี้, ผู้ใช้งานวันนี้, ออนไลน์พร้อมกันสูงสุดวันนี้/ตลอดกาล, กราฟ 14 วัน และรายชื่อคนออนไลน์ อัปเดตเองเมื่อมีคนเข้า/ออก |
 | `StaffView.jsx`, `StaffWorkTab.jsx` | หน้าของ Staff และงานของตัวเอง |
 
 #### clipboard/ และ overview/
@@ -877,10 +901,32 @@ App.jsx เก็บ state ส่วนใหญ่ของแอป แล้�
 5. ไฟล์ที่อัปโหลดแล้วไม่ได้ส่ง จะถูกลบใน 1 วัน
 
 ### 10.7 VIP
+- **ระดับ VIP สร้างเองได้:** ระบบเริ่มต้นมี ทั่วไป (5 MB), VIP 💎 (25 MB), SUPER VIP 👑 (50 MB) และ Admin เพิ่มระดับใหม่ได้ที่ Admin Dashboard > VIP > "เพิ่มระดับ VIP"
+  - แต่ละระดับมี ชื่อ, ไอคอน, สี, ลำดับ (`rank`), ขนาดไฟล์แนบ 1–1000 MB, ธีมสำเร็จรูป, ออกแบบธีมเองได้ไหม
+  - ทุกอย่างเก็บในตาราง `tier_settings` แก้แล้วส่ง `system-settings:updated` ให้ทุกคน หน้าเว็บเปลี่ยนทันที
+  - ลบระดับที่ยังมีคนใช้อยู่ไม่ได้ และลบระดับ "ทั่วไป" ไม่ได้
 - Staff/Admin ให้ VIP ตรงๆ หรือสร้างรหัสให้ผู้ใช้กรอกเอง
-- VIP ได้ไฟล์ใหญ่ขึ้น (ค่าเริ่มต้น ทั่วไป 5 MB, VIP 25 MB, SUPER VIP 50 MB), ธีมพิเศษ, ตั้งสีธีมเอง, ชื่อมีสีพิเศษ
-- ใช้รหัสระดับเดียวกันซ้ำ = ต่ออายุจากวันหมดอายุเดิม
-- หมดอายุแล้วระบบลบเองและแจ้งเตือน
+- ใช้รหัสระดับเดียวกันซ้ำ = ต่ออายุจากวันหมดอายุเดิม และคนที่อยู่ระดับสูงกว่าใช้รหัสของระดับที่ต่ำกว่าไม่ได้
+- ป้ายข้างชื่อและสีชื่อใช้ไอคอนและสีของระดับนั้น
+- หมดอายุแล้วระบบลบเองและแจ้งเตือน (เตือนล่วงหน้า 3 วัน)
+
+### 10.8 สถานะการใช้งาน (Admin / Staff Dashboard)
+1. ทุกครั้งที่มีคนเปิดเว็บและ Socket ส่ง `identify` → `recordUsage` บันทึก
+   - ลงตาราง `daily_active_users` ว่าวันนี้คนนี้เข้าใช้ (1 คนนับวันละ 1 ครั้ง)
+   - ถ้าจำนวนคนออนไลน์พร้อมกันตอนนี้มากกว่าสถิติของวันนี้ จะบันทึกลง `daily_peak_online` พร้อมเวลา
+2. `GET /api/admin/usage` ส่งกลับ
+   - คนที่กำลังใช้งานตอนนี้ (อ่านจาก `onlineUsers` ใน `index.js`)
+   - ผู้ใช้งานแต่ละวันย้อนหลัง 14 วัน (นับจากการเปิดเว็บ, การ login และการส่งข้อความ)
+   - ออนไลน์พร้อมกันสูงสุดของแต่ละวัน และสถิติสูงสุดตลอดกาล
+3. `UsageTab.jsx` แสดงเป็นการ์ดตัวเลข กราฟ และรายชื่อคนออนไลน์ อัปเดตเองเมื่อได้ event `online-users` และทุก 1 นาที
+
+### 10.9 กล่องข้อความ (SweetAlert2)
+ทุกที่ที่ต้องแจ้งเตือนหรือถามยืนยันใช้ `utils/dialog.js` ซึ่งเรียก SweetAlert2 กล่องแบบนี้ไม่หยุดรอเหมือน `confirm` ของเบราว์เซอร์ จึงต้องรอคำตอบด้วย `await`
+```js
+const confirmed = await askConfirm('ยืนยันการลบข้อความนี้?');
+if (!confirmed) return;
+```
+กด Esc หรือปุ่มย้อนกลับบนมือถือตอนกล่องเปิดอยู่ จะปิดแค่กล่อง ไม่ปิดหน้าต่างที่อยู่ข้างหลัง
 
 ---
 

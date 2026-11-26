@@ -13,6 +13,7 @@ import Avatar from '../ui/Avatar';
 import { SegmentedControl } from '../ui/Form';
 import { canSeeProject, getMemberIds } from '../../utils/permissions';
 import { getPresence, PRESENCE } from '../../utils/presence';
+import { showError } from '../../utils/dialog';
 
 function TopBar({ icon, title, subtitle, children, onSearch, onBack, pinsOpen, onTogglePins, muted, onToggleMute }) {
   return (
@@ -121,7 +122,7 @@ export default function WorkspaceView({
     apiSend('PUT', '/groups/' + currentGroup.id + '/projects/' + changed.id + '/board', {
       columns: changed.columns,
       tasks: changed.tasks
-    }).catch(err => alert('บันทึกบอร์ดไม่สำเร็จ: ' + err.message));
+    }).catch(err => showError('บันทึกบอร์ดไม่สำเร็จ: ' + err.message));
   };
 
   const chatProps = {

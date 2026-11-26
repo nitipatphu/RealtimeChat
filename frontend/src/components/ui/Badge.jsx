@@ -1,4 +1,4 @@
-import { getVipTier, VIP_NAMES } from '../../utils/vip';
+import { getVipTier, getTierInfo, tierGradient } from '../../utils/vip';
 const TONES = {
   slate: 'bg-slate-100 text-slate-600',
   indigo: 'bg-indigo-50 text-indigo-700',
@@ -35,23 +35,35 @@ export function SystemRoleBadge({ systemRole }) {
 export function VipBadge({ user, size }) {
   const tier = getVipTier(user);
   if (!tier) return null;
-  const isSuper = tier === 'supervip';
+  const info = getTierInfo(tier);
+  const icon = info.icon || '💎';
 
   if (size === 'icon') {
     return (
-      <span title={VIP_NAMES[tier]} className={`shrink-0 text-[13px] leading-none ${isSuper ? 'drop-shadow-[0_0_3px_rgba(245,158,11,0.6)]' : ''}`}>
-        {isSuper ? '👑' : '💎'}
+      <span title={info.name} className="shrink-0 text-[13px] leading-none">
+        {icon}
       </span>
     );
   }
 
   return (
     <span
-      className={`inline-flex items-center gap-1 h-5 px-1.5 rounded-md text-[11px] font-bold tracking-wide text-white ${
-        isSuper ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-fuchsia-500 to-indigo-500'
-      }`}
+      className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md text-[11px] font-bold tracking-wide text-white"
+      style={{ backgroundImage: tierGradient(info.color) }}
     >
-      {isSuper ? '👑' : '💎'} {VIP_NAMES[tier]}
+      {icon} {info.name}
+    </span>
+  );
+}
+
+export function TierBadge({ tierId }) {
+  const info = getTierInfo(tierId);
+  return (
+    <span
+      className="inline-flex items-center gap-1 h-5 px-1.5 rounded-md text-[11px] font-bold tracking-wide text-white whitespace-nowrap"
+      style={{ backgroundImage: tierGradient(info.color) }}
+    >
+      {info.icon} {info.name}
     </span>
   );
 }

@@ -4,13 +4,15 @@ import Icon from '../ui/Icon';
 import { getMemberIds, getMemberRole, getDisplayName } from '../../utils/permissions';
 import { getPresence } from '../../utils/presence';
 import { VipBadge } from '../ui/Badge';
-import { vipNameClass } from '../../utils/vip';
+import { vipNameStyle } from '../../utils/vip';
 
 function MemberRow({ member, group, status, unreadCount, onOpen }) {
   const role = getMemberRole(group, member.id);
   const isOwner = member.id === group.ownerId;
   const showColor = !role.isDefault && role.id !== 'none';
   const isOffline = status === 'offline';
+  let nameStyle = vipNameStyle(member);
+  if (!nameStyle && showColor && !isOffline) nameStyle = { color: role.color };
 
   return (
     <button
@@ -21,8 +23,8 @@ function MemberRow({ member, group, status, unreadCount, onOpen }) {
       <Avatar src={member.avatar} name={member.name} size="sm" status={status} />
       <span className="flex-1 min-w-0 flex items-center gap-1">
         <span
-          className={`min-w-0 truncate text-sm font-medium ${vipNameClass(member) || 'text-slate-700'}`}
-          style={showColor && !isOffline && !vipNameClass(member) ? { color: role.color } : null}
+          className="min-w-0 truncate text-sm font-medium text-slate-700"
+          style={nameStyle}
         >
           {getDisplayName(group, member)}
         </span>

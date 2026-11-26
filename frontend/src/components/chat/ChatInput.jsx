@@ -8,7 +8,8 @@ import EmojiPicker from '../ui/EmojiPicker';
 import PollModal from '../modals/PollModal';
 import ScheduleModal from '../modals/ScheduleModal';
 import ClipPicker from '../clipboard/ClipPicker';
-import { getPerks, getTierSettings } from '../../utils/vip';
+import { getPerks, getBiggestFileMB } from '../../utils/vip';
+import { showAlert, showError } from '../../utils/dialog';
 
 function loadDraft(draftKey) {
   if (!draftKey) return '';
@@ -216,16 +217,16 @@ export default function ChatInput({
     if (files.length === 0) return;
 
     if (attachments.length + files.length > 5) {
-      alert('แนบไฟล์ได้สูงสุด 5 ไฟล์ต่อข้อความ');
+      showAlert('แนบไฟล์ได้สูงสุด 5 ไฟล์ต่อข้อความ');
       return;
     }
 
     setUploading(true);
     for (const file of files) {
       const limitMB = getPerks(currentUser).fileMB;
-      const biggest = Math.max(getTierSettings().vip.fileMB, getTierSettings().supervip.fileMB);
+      const biggest = getBiggestFileMB();
       if (file.size > limitMB * 1024 * 1024) {
-        alert(file.name + ' ใหญ่เกิน ' + limitMB + ' MB' + (biggest > limitMB ? ' (อัปเกรด VIP เพื่อส่งไฟล์ใหญ่ขึ้น)' : ''));
+        showAlert(file.name + ' ใหญ่เกิน ' + limitMB + ' MB' + (biggest > limitMB ? ' (อัปเกรด VIP เพื่อส่งไฟล์ใหญ่ขึ้น)' : ''));
         continue;
       }
 
@@ -235,7 +236,7 @@ export default function ChatInput({
         const data = await apiUpload('/uploads', formData);
         setAttachments(prev => [...prev, data]);
       } catch (err) {
-        alert(file.name + ': ' + err.message);
+        showError(file.name + ': ' + err.message);
       }
     }
     setUploading(false);

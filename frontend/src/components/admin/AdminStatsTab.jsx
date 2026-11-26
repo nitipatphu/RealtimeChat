@@ -23,6 +23,7 @@ export default function AdminStatsTab({ currentUser, onGoTo }) {
   if (error) return <ErrorBox message={error} />;
   if (!stats) return <p className="text-sm text-slate-500">กำลังโหลด...</p>;
 
+  const vipHint = stats.vipByTier.map(tier => tier.name + ' ' + tier.count).join(' · ');
   const topGroups = stats.topGroups.map(g => ({ id: g.id, label: g.name, value: g.messageCount }));
 
   return (
@@ -32,7 +33,7 @@ export default function AdminStatsTab({ currentUser, onGoTo }) {
         <StatCard label="กลุ่มทั้งหมด" value={stats.groups.total} icon="grid" tone="emerald" hint={'Public ' + stats.groups.public + ' · Private ' + stats.groups.private} />
         <StatCard label="ข้อความทั้งหมด" value={stats.messages.total} icon="chat" tone="slate" hint="รวมทุก Channel, Project และ DM" />
         <button type="button" onClick={() => onGoTo('vip')} className="text-left">
-          <StatCard label="สมาชิก VIP" value={stats.users.vip + stats.users.supervip} icon="sparkles" tone="amber" hint={'VIP ' + stats.users.vip + ' · SUPER VIP ' + stats.users.supervip} />
+          <StatCard label="สมาชิก VIP" value={stats.users.vip} icon="sparkles" tone="amber" hint={vipHint} />
         </button>
       </div>
 

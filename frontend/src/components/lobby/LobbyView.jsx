@@ -8,6 +8,7 @@ import Card, { EmptyState, PageHeader, Tabs } from '../ui/Card';
 import { ErrorBox, inputClass } from '../ui/Form';
 import CreateGroupModal from './CreateGroupModal';
 import { getMemberRole } from '../../utils/permissions';
+import { showError } from '../../utils/dialog';
 
 function MyGroupCard({ group, currentUser, onOpen }) {
   const role = getMemberRole(group, currentUser.id);
@@ -100,7 +101,7 @@ export default function LobbyView({ currentUser, myGroups, onOpenGroup, onGroups
       await onGroupsChanged();
       onOpenGroup(data.group);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     } finally {
       setJoining(false);
     }
@@ -183,7 +184,7 @@ export default function LobbyView({ currentUser, myGroups, onOpenGroup, onGroups
               <input
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                placeholder="เช่น DEV123"
+                placeholder="เช่น DEV"
                 className={inputClass + ' font-mono tracking-widest uppercase'}
                 maxLength={10}
               />

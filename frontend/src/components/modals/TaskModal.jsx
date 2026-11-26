@@ -7,6 +7,7 @@ import Icon from '../ui/Icon';
 import { Field, ErrorBox, inputClass, textareaClass } from '../ui/Form';
 import { timeAgo } from '../../utils/format';
 import { getAssigneeIds } from '../../utils/tasks';
+import { showError, askConfirm } from '../../utils/dialog';
 
 export default function TaskModal({ task, columns, members, onSave, onDelete, onClose, groupId, projectId, users, readOnly }) {
   const [checklist, setChecklist] = useState(task.checklist || []);
@@ -37,7 +38,7 @@ export default function TaskModal({ task, columns, members, onSave, onDelete, on
       await apiSend('POST', '/groups/' + groupId + '/projects/' + projectId + '/tasks/' + task.id + '/comments', { text: comment });
       setComment('');
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     } finally {
       setSendingComment(false);
     }
@@ -79,8 +80,9 @@ export default function TaskModal({ task, columns, members, onSave, onDelete, on
     });
   };
 
-  const handleDelete = () => {
-    if (!window.confirm('ยืนยันการลบงานนี้?')) return;
+  const handleDelete = async () => {
+    const confirmed = await askConfirm('ยืนยันการลบงานนี้?');
+    if (!confirmed) return;
     onDelete(task.id);
   };
 

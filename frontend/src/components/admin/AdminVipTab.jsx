@@ -3,14 +3,15 @@ import { apiGet, apiSend } from '../../api';
 import Card from '../ui/Card';
 import Button, { IconButton } from '../ui/Button';
 import Avatar from '../ui/Avatar';
-import { VipBadge } from '../ui/Badge';
+import { VipBadge, TierBadge } from '../ui/Badge';
 import { Field, ErrorBox, inputClass } from '../ui/Form';
-import { VIP_NAMES } from '../../utils/vip';
+import { getVipTierList, getTierName, tierGradient } from '../../utils/vip';
 import { formatDate } from '../../utils/format';
 import { isAdminUser } from '../../utils/permissions';
 import TierSettingsCard from './TierSettingsCard';
 import UserPicker from '../ui/UserPicker';
 import { copyText } from '../../utils/clipboard';
+import { showError, askConfirm } from '../../utils/dialog';
 
 const DAY_OPTIONS = [
   { value: 7, label: '7 วัน' },
@@ -20,25 +21,37 @@ const DAY_OPTIONS = [
 ];
 
 function TierPicker({ value, onChange }) {
+  const tiers = getVipTierList();
+  if (tiers.length === 0) {
+    return <p className="text-sm text-slate-500">ยังไม่มีระดับ VIP กด "เพิ่มระดับ VIP" ด้านบนก่อน</p>;
+  }
+
   return (
-    <div className="flex gap-2">
-      {['vip', 'supervip'].map(tier => {
-        let colorClass = 'border-slate-200 text-slate-600';
-        if (value === tier && tier === 'supervip') colorClass = 'border-amber-400 bg-amber-50 text-amber-700';
-        if (value === tier && tier === 'vip') colorClass = 'border-fuchsia-400 bg-fuchsia-50 text-fuchsia-700';
+    <div className="flex flex-wrap gap-2">
+      {tiers.map(tier => {
+        const selected = value === tier.id;
+        let style = null;
+        if (selected) style = { backgroundImage: tierGradient(tier.color), borderColor: tier.color };
         return (
           <button
-            key={tier}
+            key={tier.id}
             type="button"
-            onClick={() => onChange(tier)}
-            className={'flex-1 h-10 rounded-lg border-2 text-sm font-semibold ' + colorClass}
+            onClick={() => onChange(tier.id)}
+            className={'flex-1 min-w-[110px] h-10 px-3 rounded-lg border-2 text-sm font-semibold ' + (selected ? 'text-white' : 'border-slate-200 text-slate-600')}
+            style={style}
           >
-            {tier === 'supervip' ? '👑 ' : '💎 '}{VIP_NAMES[tier]}
+            {tier.icon} {tier.name}
           </button>
         );
       })}
     </div>
   );
+}
+
+function firstTierId() {
+  const tiers = getVipTierList();
+  if (tiers.length === 0) return '';
+  return tiers[0].id;
 }
 
 function daysLeft(expiresAt) {
@@ -56,11 +69,11 @@ export default function AdminVipTab({ currentUser, showSaved }) {
   const [reloadKey, setReloadKey] = useState(0);
 
   const [grantUserId, setGrantUserId] = useState('');
-  const [grantTier, setGrantTier] = useState('vip');
+  const [grantTier, setGrantTier] = useState(firstTierId());
   const [grantDays, setGrantDays] = useState(30);
   const [grantError, setGrantError] = useState('');
 
-  const [codeTier, setCodeTier] = useState('vip');
+  const [codeTier, setCodeTier] = useState(firstTierId());
   const [codeDays, setCodeDays] = useState(30);
   const [codeUses, setCodeUses] = useState(1);
   const [codeNote, setCodeNote] = useState('');
@@ -93,12 +106,13 @@ export default function AdminVipTab({ currentUser, showSaved }) {
   };
 
   const revoke = async (member) => {
-    if (!window.confirm('ยกเลิก ' + VIP_NAMES[member.vip.tier] + ' ของ ' + member.name + '?')) return;
+    const confirmed = await askConfirm('ยกเลิก ' + getTierName(member.vip.tier) + ' ของ ' + member.name + '?');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', '/admin/users/' + member.id + '/vip');
       reload();
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -117,12 +131,13 @@ export default function AdminVipTab({ currentUser, showSaved }) {
   };
 
   const deleteCode = async (code) => {
-    if (!window.confirm('ลบรหัส ' + code + '? คนที่ใช้ไปแล้วยังเป็น VIP ต่อ')) return;
+    const confirmed = await askConfirm('ลบรหัส ' + code + '? คนที่ใช้ไปแล้วยังเป็น VIP ต่อ');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', '/admin/vip-codes/' + code);
       reload();
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -132,20 +147,21 @@ export default function AdminVipTab({ currentUser, showSaved }) {
     setTimeout(() => setCopied(''), 1500);
   };
 
-  const vipCount = data.members.filter(m => m.vip.tier === 'vip').length;
-  const superCount = data.members.filter(m => m.vip.tier === 'supervip').length;
+  const tierCounts = getVipTierList().map(tier => ({
+    id: tier.id,
+    label: tier.icon + ' ' + tier.name,
+    count: data.members.filter(m => m.vip.tier === tier.id).length
+  }));
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">💎 VIP</p>
-          <p className="text-2xl font-semibold text-slate-900 mt-1">{vipCount}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">👑 SUPER VIP</p>
-          <p className="text-2xl font-semibold text-slate-900 mt-1">{superCount}</p>
-        </div>
+        {tierCounts.map(item => (
+          <div key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="text-xs text-slate-500 truncate">{item.label}</p>
+            <p className="text-2xl font-semibold text-slate-900 mt-1">{item.count}</p>
+          </div>
+        ))}
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <p className="text-xs text-slate-500">หมดอายุใน 7 วัน</p>
           <p className="text-2xl font-semibold text-amber-600 mt-1">{data.members.filter(m => daysLeft(m.vip.expiresAt) <= 7).length}</p>
@@ -245,7 +261,7 @@ export default function AdminVipTab({ currentUser, showSaved }) {
                   <div className="flex-1 min-w-[200px]">
                     <p className="flex items-center gap-2">
                       <span className="font-mono text-sm font-semibold tracking-wider text-slate-900">{item.code}</span>
-                      <VipBadge user={{ vip: { tier: item.tier } }} />
+                      <TierBadge tierId={item.tier} />
                       {usedUp && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">ใช้ครบแล้ว</span>}
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">

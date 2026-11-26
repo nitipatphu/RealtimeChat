@@ -4,13 +4,15 @@ import AdminUsersTab from '../admin/AdminUsersTab';
 import AdminGroupsTab from '../admin/AdminGroupsTab';
 import StaffWorkTab from './StaffWorkTab';
 import AdminVipTab from '../admin/AdminVipTab';
+import UsageTab from '../admin/UsageTab';
 
 export default function StaffView({ currentUser, tab, onChangeTab, showSaved }) {
   const tabs = [
     { id: 'users', icon: 'users', label: 'ผู้ใช้' },
     { id: 'groups', icon: 'grid', label: 'กลุ่ม' },
     { id: 'vip', icon: 'sparkles', label: 'VIP' },
-    { id: 'work', icon: 'chart', label: 'งานของฉัน' }
+    { id: 'work', icon: 'chart', label: 'งานของฉัน' },
+    { id: 'usage', icon: 'clock', label: 'สถานะการใช้งาน' }
   ];
   const activeTab = tabs.some(t => t.id === tab) ? tab : 'users';
 
@@ -32,6 +34,7 @@ export default function StaffView({ currentUser, tab, onChangeTab, showSaved }) 
         {activeTab === 'groups' && <AdminGroupsTab currentUser={currentUser} showSaved={showSaved} />}
         {activeTab === 'work' && <StaffWorkTab currentUser={currentUser} onGoTo={onChangeTab} />}
         {activeTab === 'vip' && <AdminVipTab currentUser={currentUser} showSaved={showSaved} />}
+        {activeTab === 'usage' && <UsageTab currentUser={currentUser} />}
       </div>
     </div>
   );

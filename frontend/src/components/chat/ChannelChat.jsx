@@ -11,6 +11,7 @@ import LoadOlderButton from './LoadOlderButton';
 import Icon from '../ui/Icon';
 import { getMemberIds, getDisplayName, hasPermission, getTimeoutUntil } from '../../utils/permissions';
 import { mergeMessages, getOldestTime, getLastId } from '../../utils/messages';
+import { showError, askConfirm } from '../../utils/dialog';
 
 export default function ChannelChat({ channel, currentGroup, currentUser, users, setChannels, onOpenProfile, readOnly, showPins, onClosePins, focusMessageId }) {
   const [activeThreadId, setActiveThreadId] = useState(null);
@@ -45,7 +46,7 @@ export default function ChannelChat({ channel, currentGroup, currentUser, users,
           return { ...ch, loaded: true, hasMore: data.hasMore, messages: mergeMessages(data.messages, ch.messages) };
         }));
       })
-      .catch(err => alert(err.message));
+      .catch(err => showError(err.message));
   }, [channelId, isLoaded, currentUser.id, setChannels]);
 
   const loadOlder = async () => {
@@ -59,7 +60,7 @@ export default function ChannelChat({ channel, currentGroup, currentUser, users,
         return { ...ch, hasMore: data.hasMore, messages: mergeMessages(ch.messages, data.messages) };
       }));
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     } finally {
       setLoadingOlder(false);
     }
@@ -85,7 +86,7 @@ export default function ChannelChat({ channel, currentGroup, currentUser, users,
       saveMessageLocally(data);
       return true;
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
       return false;
     }
   };
@@ -96,19 +97,20 @@ export default function ChannelChat({ channel, currentGroup, currentUser, users,
       saveMessageLocally(data);
       return true;
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
       return false;
     }
   };
 
   const deleteMessage = async (msgId) => {
-    if (!window.confirm('ยืนยันการลบข้อความนี้?')) return;
+    const confirmed = await askConfirm('ยืนยันการลบข้อความนี้?');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', url + '/' + msgId);
       removeMessageLocally(msgId);
       if (activeThreadId === msgId) setActiveThreadId(null);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -117,7 +119,7 @@ export default function ChannelChat({ channel, currentGroup, currentUser, users,
       const data = await apiSend('POST', url + '/' + msgId + '/reactions', { emoji: emoji });
       saveMessageLocally(data);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -127,7 +129,7 @@ export default function ChannelChat({ channel, currentGroup, currentUser, users,
       saveMessageLocally(data);
       return true;
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
       return false;
     }
   };
@@ -137,7 +139,7 @@ export default function ChannelChat({ channel, currentGroup, currentUser, users,
       const data = await apiSend('POST', url + '/' + msgId + '/vote', { optionId: optionId });
       saveMessageLocally(data);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
@@ -147,7 +149,7 @@ export default function ChannelChat({ channel, currentGroup, currentUser, users,
       saveMessageLocally(data);
       setPinsKey(key => key + 1);
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 

@@ -2,7 +2,7 @@ import { query, getOne, getMany, transaction } from '../config/database.js';
 import { addAdminLog } from '../utils/logs.js';
 import { addNotification } from '../utils/notifications.js';
 import { sendToEveryone } from '../utils/socketEvents.js';
-import { VIP_TIERS, VIP_NAMES, getVipTier, tierRank, makeVipRecord, makeVipCode, formatThaiDate, getTierSettings, cleanTierSettings } from '../utils/vip.js';
+import { NO_TIER, getVipTier, makeVipRecord, makeVipCode, formatThaiDate, getTierSettings, getTierList, findVipTier, getTierName, cleanTierInput } from '../utils/vip.js';
 import { findUserById, toIso } from '../models/userModel.js';
 
 async function findUserOr404(id, res) {
@@ -14,10 +14,10 @@ async function findUserOr404(id, res) {
   return user;
 }
 
-function readTierAndDays(body, res) {
-  const tier = body.tier;
+async function readTierAndDays(body, res) {
+  const tier = await findVipTier(body.tier);
   const days = Math.round(Number(body.days));
-  if (!VIP_TIERS.includes(tier)) {
+  if (!tier) {
     res.status(400);
     throw new Error('ระดับ VIP ไม่ถูกต้อง');
   }
@@ -26,6 +26,12 @@ function readTierAndDays(body, res) {
     throw new Error('จำนวนวันต้องอยู่ระหว่าง 1 ถึง 3650 วัน');
   }
   return { tier, days };
+}
+
+async function announceTiers(req) {
+  const tiers = await getTierSettings();
+  sendToEveryone(req, 'system-settings:updated', { tiers: tiers });
+  return tiers;
 }
 
 async function saveVip(userId, vip, client) {
@@ -79,15 +85,15 @@ export const getVipOverview = async (req, res) => {
 };
 
 export const grantVip = async (req, res) => {
-  const { tier, days } = readTierAndDays(req.body, res);
+  const { tier, days } = await readTierAndDays(req.body, res);
   const user = await findUserOr404(req.params.id, res);
 
-  const vip = makeVipRecord(user, tier, days, req.adminUser.id, 'admin');
+  const vip = makeVipRecord(user, tier.id, days, req.adminUser.id, 'admin');
   await saveVip(user.id, vip);
-  await addAdminLog(req.adminUser.id, 'vip_grant', req.adminUser.name + ' ให้ ' + VIP_NAMES[tier] + ' กับ ' + user.name + ' ' + days + ' วัน (หมดอายุ ' + formatThaiDate(vip.expiresAt) + ')');
+  await addAdminLog(req.adminUser.id, 'vip_grant', req.adminUser.name + ' ให้ ' + tier.name + ' กับ ' + user.name + ' ' + days + ' วัน (หมดอายุ ' + formatThaiDate(vip.expiresAt) + ')');
   await addNotification(req, user.id, {
     type: 'vip',
-    title: 'คุณได้รับ ' + VIP_NAMES[tier] + ' 💎',
+    title: 'คุณได้รับ ' + tier.name + ' ' + (tier.icon || '💎'),
     body: 'ใช้ได้ถึง ' + formatThaiDate(vip.expiresAt) + ' ดูสิทธิพิเศษได้ที่ตั้งค่าของฉัน > VIP',
     target: { type: 'settings', id: 'vip' }
   });
@@ -102,7 +108,7 @@ export const revokeVip = async (req, res) => {
     throw new Error('ผู้ใช้นี้ไม่ได้เป็น VIP');
   }
 
-  const oldName = VIP_NAMES[user.vip.tier] || 'VIP';
+  const oldName = await getTierName(user.vip.tier);
   await query('DELETE FROM user_vip WHERE user_id = $1', [user.id]);
   await addAdminLog(req.adminUser.id, 'vip_revoke', req.adminUser.name + ' ยกเลิก ' + oldName + ' ของ ' + user.name);
   await addNotification(req, user.id, {
@@ -116,7 +122,7 @@ export const revokeVip = async (req, res) => {
 };
 
 export const createVipCode = async (req, res) => {
-  const { tier, days } = readTierAndDays(req.body, res);
+  const { tier, days } = await readTierAndDays(req.body, res);
   const maxUses = Math.round(Number(req.body.maxUses) || 1);
   if (maxUses < 1 || maxUses > 1000) {
     res.status(400);
@@ -129,10 +135,10 @@ export const createVipCode = async (req, res) => {
   }
 
   const note = String(req.body.note || '').trim().slice(0, 100);
-  await query('INSERT INTO vip_codes (code, tier, days, max_uses, note, created_by) VALUES ($1, $2, $3, $4, $5, $6)', [code, tier, days, maxUses, note, req.adminUser.id]);
-  await addAdminLog(req.adminUser.id, 'vip_code', req.adminUser.name + ' สร้างรหัส ' + VIP_NAMES[tier] + ' ' + days + ' วัน (' + code + ', ใช้ได้ ' + maxUses + ' ครั้ง)');
+  await query('INSERT INTO vip_codes (code, tier, days, max_uses, note, created_by) VALUES ($1, $2, $3, $4, $5, $6)', [code, tier.id, days, maxUses, note, req.adminUser.id]);
+  await addAdminLog(req.adminUser.id, 'vip_code', req.adminUser.name + ' สร้างรหัส ' + tier.name + ' ' + days + ' วัน (' + code + ', ใช้ได้ ' + maxUses + ' ครั้ง)');
 
-  res.status(201).json({ code: code, tier: tier, days: days, maxUses: maxUses, usedBy: [], note: note, createdBy: req.adminUser.id, createdAt: new Date().toISOString() });
+  res.status(201).json({ code: code, tier: tier.id, days: days, maxUses: maxUses, usedBy: [], note: note, createdBy: req.adminUser.id, createdAt: new Date().toISOString() });
 };
 
 export const deleteVipCode = async (req, res) => {
@@ -155,11 +161,15 @@ export const redeemVipCode = async (req, res) => {
     throw new Error('รหัสไม่ถูกต้อง');
   }
 
+  const tiers = await getTierSettings();
+  const codeTier = tiers[item.tier];
   const currentTier = getVipTier(user);
-  if (tierRank(currentTier) > tierRank(item.tier)) {
+  if (currentTier && tiers[currentTier] && codeTier && tiers[currentTier].rank > codeTier.rank) {
     res.status(400);
-    throw new Error('คุณเป็น ' + VIP_NAMES[currentTier] + ' อยู่แล้ว ใช้รหัสนี้ได้หลังจากหมดอายุ');
+    throw new Error('คุณเป็น ' + tiers[currentTier].name + ' อยู่แล้ว ใช้รหัสนี้ได้หลังจากหมดอายุ');
   }
+  let codeTierName = 'VIP';
+  if (codeTier) codeTierName = codeTier.name;
 
   const vip = makeVipRecord(user, item.tier, item.days, item.created_by, 'code');
   await transaction(async (client) => {
@@ -175,11 +185,11 @@ export const redeemVipCode = async (req, res) => {
     }
     await query('INSERT INTO vip_code_uses (code, user_id) VALUES ($1, $2)', [item.code, user.id], client);
     await saveVip(user.id, vip, client);
-    await addAdminLog(user.id, 'vip_redeem', user.name + ' ใช้รหัส ' + item.code + ' ได้ ' + VIP_NAMES[item.tier] + ' ' + item.days + ' วัน', client);
+    await addAdminLog(user.id, 'vip_redeem', user.name + ' ใช้รหัส ' + item.code + ' ได้ ' + codeTierName + ' ' + item.days + ' วัน', client);
   });
 
   const updated = await announceUser(req, user.id);
-  res.json({ message: 'เปิดใช้ ' + VIP_NAMES[item.tier] + ' แล้ว ใช้ได้ถึง ' + formatThaiDate(vip.expiresAt), user: updated });
+  res.json({ message: 'เปิดใช้ ' + codeTierName + ' แล้ว ใช้ได้ถึง ' + formatThaiDate(vip.expiresAt), user: updated });
 };
 
 export async function checkVipExpiry(app) {
@@ -187,7 +197,7 @@ export async function checkVipExpiry(app) {
 
   const expired = await getMany('DELETE FROM user_vip WHERE expires_at <= now() RETURNING user_id, tier');
   for (const row of expired) {
-    const name = VIP_NAMES[row.tier] || 'VIP';
+    const name = await getTierName(row.tier);
     await addNotification(fakeReq, row.user_id, {
       type: 'vip',
       title: name + ' ของคุณหมดอายุแล้ว',
@@ -203,7 +213,7 @@ export async function checkVipExpiry(app) {
      RETURNING user_id, tier, expires_at`
   );
   for (const row of warning) {
-    const name = VIP_NAMES[row.tier] || 'VIP';
+    const name = await getTierName(row.tier);
     const daysLeft = Math.ceil((new Date(row.expires_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
     await addNotification(fakeReq, row.user_id, {
       type: 'vip',
@@ -218,28 +228,107 @@ export const getSystemSettings = async (req, res) => {
   res.json({ tiers: await getTierSettings() });
 };
 
-export const updateTierSettings = async (req, res) => {
-  let tiers;
+export const createTier = async (req, res) => {
+  let input;
   try {
-    tiers = cleanTierSettings(req.body.tiers);
+    input = cleanTierInput(req.body);
   } catch (error) {
     res.status(400);
     throw error;
   }
 
-  await transaction(async (client) => {
-    for (const tier of Object.keys(tiers)) {
-      await query(
-        'INSERT INTO tier_settings (tier, file_mb, preset_themes, custom_theme) VALUES ($1, $2, $3, $4) ON CONFLICT (tier) DO UPDATE SET file_mb = $2, preset_themes = $3, custom_theme = $4',
-        [tier, tiers[tier].fileMB, tiers[tier].presetThemes, tiers[tier].customTheme],
-        client
-      );
-    }
+  const list = await getTierList();
+  if (list.length >= 11) {
+    res.status(400);
+    throw new Error('สร้างระดับ VIP ได้สูงสุด 10 ระดับ');
+  }
+  let topRank = 0;
+  list.forEach(item => {
+    if (item.rank > topRank) topRank = item.rank;
   });
 
-  const summary = ['none', 'vip', 'supervip'].map(tier => (tier === 'none' ? 'ทั่วไป' : VIP_NAMES[tier]) + ' ' + tiers[tier].fileMB + ' MB').join(', ');
-  await addAdminLog(req.adminUser.id, 'vip_settings', req.adminUser.name + ' แก้ไขสิทธิ์ของแต่ละระดับ (' + summary + ')');
+  const id = 'tier-' + Date.now();
+  await query(
+    'INSERT INTO tier_settings (tier, name, icon, color, rank, file_mb, preset_themes, custom_theme) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+    [id, input.name, input.icon, input.color, topRank + 1, input.fileMB, input.presetThemes, input.customTheme]
+  );
+  await addAdminLog(req.adminUser.id, 'vip_settings', req.adminUser.name + ' สร้างระดับ VIP ใหม่ ' + input.name + ' (' + input.fileMB + ' MB)');
 
-  sendToEveryone(req, 'system-settings:updated', { tiers: tiers });
+  const tiers = await announceTiers(req);
+  res.status(201).json({ tiers: tiers });
+};
+
+export const updateTier = async (req, res) => {
+  const old = await getOne('SELECT * FROM tier_settings WHERE tier = $1', [req.params.tier]);
+  if (!old) {
+    res.status(404);
+    throw new Error('ไม่พบระดับนี้');
+  }
+
+  let input;
+  try {
+    input = cleanTierInput(req.body);
+  } catch (error) {
+    res.status(400);
+    throw error;
+  }
+
+  await query(
+    'UPDATE tier_settings SET name = $2, icon = $3, color = $4, file_mb = $5, preset_themes = $6, custom_theme = $7 WHERE tier = $1',
+    [old.tier, input.name, input.icon, input.color, input.fileMB, input.presetThemes, input.customTheme]
+  );
+  await addAdminLog(req.adminUser.id, 'vip_settings', req.adminUser.name + ' แก้ไขระดับ ' + input.name + ' (' + input.fileMB + ' MB)');
+
+  const tiers = await announceTiers(req);
+  res.json({ tiers: tiers });
+};
+
+export const moveTier = async (req, res) => {
+  const list = await getTierList();
+  const vipList = list.filter(item => item.id !== NO_TIER);
+  const index = vipList.findIndex(item => item.id === req.params.tier);
+  if (index === -1) {
+    res.status(404);
+    throw new Error('ไม่พบระดับนี้');
+  }
+
+  let otherIndex = index + 1;
+  if (req.body.direction === 'down') otherIndex = index - 1;
+  if (otherIndex < 0 || otherIndex >= vipList.length) {
+    res.json({ tiers: await getTierSettings() });
+    return;
+  }
+
+  const current = vipList[index];
+  const other = vipList[otherIndex];
+  await transaction(async (client) => {
+    await query('UPDATE tier_settings SET rank = $2 WHERE tier = $1', [current.id, other.rank], client);
+    await query('UPDATE tier_settings SET rank = $2 WHERE tier = $1', [other.id, current.rank], client);
+  });
+
+  const tiers = await announceTiers(req);
+  res.json({ tiers: tiers });
+};
+
+export const deleteTier = async (req, res) => {
+  const tier = await findVipTier(req.params.tier);
+  if (!tier) {
+    res.status(400);
+    throw new Error('ลบระดับนี้ไม่ได้');
+  }
+
+  const members = await getOne('SELECT count(*) AS total FROM user_vip WHERE tier = $1', [tier.id]);
+  if (Number(members.total) > 0) {
+    res.status(400);
+    throw new Error('ยังมีผู้ใช้เป็น ' + tier.name + ' อยู่ ' + members.total + ' คน ยกเลิก VIP ของทุกคนก่อนจึงจะลบได้');
+  }
+
+  await transaction(async (client) => {
+    await query('DELETE FROM vip_codes WHERE tier = $1', [tier.id], client);
+    await query('DELETE FROM tier_settings WHERE tier = $1', [tier.id], client);
+  });
+  await addAdminLog(req.adminUser.id, 'vip_settings', req.adminUser.name + ' ลบระดับ VIP ' + tier.name);
+
+  const tiers = await announceTiers(req);
   res.json({ tiers: tiers });
 };

@@ -6,6 +6,7 @@ import Icon from '../ui/Icon';
 import Badge from '../ui/Badge';
 import { Field, ErrorBox, Toggle, inputClass } from '../ui/Form';
 import { PERMISSIONS, ROLE_COLORS, hasPermission, getMemberRole } from '../../utils/permissions';
+import { showError, askConfirm } from '../../utils/dialog';
 
 
 function saveRoleLabel(saving, role) {
@@ -60,7 +61,8 @@ function RoleEditor({ group, role, onDone, showSaved }) {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('ลบ Role ' + role.name + '? สมาชิกที่มี Role นี้จะกลับไปเป็น Role เริ่มต้น')) return;
+    const confirmed = await askConfirm('ลบ Role ' + role.name + '? สมาชิกที่มี Role นี้จะกลับไปเป็น Role เริ่มต้น');
+    if (!confirmed) return;
     try {
       await apiSend('DELETE', '/groups/' + group.id + '/roles/' + role.id);
       showSaved();
@@ -168,7 +170,7 @@ export default function GroupRolesTab({ group, currentUser, showSaved }) {
       await apiSend('PUT', '/groups/' + group.id + '/roles-order', { roleIds: ids });
       showSaved();
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
   };
 
