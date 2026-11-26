@@ -181,11 +181,26 @@ export const deleteAccount = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   const { name, bio, title, bannerColor } = req.body;
-  if (!name || !name.trim()) { res.status(400); throw new Error('กรุณากรอกชื่อ'); }
-  if (name.length > 50) { res.status(400); throw new Error('ชื่อยาวเกินไป'); }
-  if ((bio || '').length > 200) { res.status(400); throw new Error('แนะนำตัวยาวเกินไป'); }
-  if ((title || '').length > 50) { res.status(400); throw new Error('ตำแหน่งยาวเกินไป'); }
-  if (bannerColor && !/^#[0-9a-fA-F]{6}$/.test(bannerColor)) { res.status(400); throw new Error('สีแบนเนอร์ไม่ถูกต้อง'); }
+  if (!name || !name.trim()) {
+    res.status(400);
+    throw new Error('กรุณากรอกชื่อ');
+  }
+  if (name.length > 50) {
+    res.status(400);
+    throw new Error('ชื่อยาวเกินไป');
+  }
+  if ((bio || '').length > 200) {
+    res.status(400);
+    throw new Error('แนะนำตัวยาวเกินไป');
+  }
+  if ((title || '').length > 50) {
+    res.status(400);
+    throw new Error('ตำแหน่งยาวเกินไป');
+  }
+  if (bannerColor && !/^#[0-9a-fA-F]{6}$/.test(bannerColor)) {
+    res.status(400);
+    throw new Error('สีแบนเนอร์ไม่ถูกต้อง');
+  }
 
   const user = await findUserOr404(req.userId, res);
   const newName = name.trim();

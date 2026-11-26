@@ -48,8 +48,8 @@ export const getScheduled = async (req, res) => {
     let parsed = null;
     try {
       parsed = JSON.parse(req.query.target);
-    } catch {
-      parsed = null;
+    } catch (error) {
+      console.log(error.message);
     }
     const target = cleanTarget(parsed);
     if (!target) {
@@ -97,13 +97,19 @@ export const createScheduled = async (req, res) => {
     throw new Error('ตั้งเวลาได้สูงสุด 50 ข้อความ');
   }
 
-  const exists = target.type === 'channel'
-    ? await getOne('SELECT 1 FROM channels WHERE id = $1', [target.channelId])
-    : target.type === 'project'
-      ? await getOne('SELECT 1 FROM project_channels WHERE id = $1 AND project_id = $2', [target.channelId, target.projectId])
-      : target.type === 'gdm'
-        ? await getOne('SELECT 1 FROM conversation_participants WHERE conversation_id = $1 AND user_id = $2', [target.conversationId, req.userId])
-        : await getOne('SELECT 1 FROM users WHERE id = $1', [target.otherUserId]);
+  let exists = null;
+  if (target.type === 'channel') {
+    exists = await getOne('SELECT 1 FROM channels WHERE id = $1', [target.channelId]);
+  }
+  if (target.type === 'project') {
+    exists = await getOne('SELECT 1 FROM project_channels WHERE id = $1 AND project_id = $2', [target.channelId, target.projectId]);
+  }
+  if (target.type === 'gdm') {
+    exists = await getOne('SELECT 1 FROM conversation_participants WHERE conversation_id = $1 AND user_id = $2', [target.conversationId, req.userId]);
+  }
+  if (target.type === 'dm') {
+    exists = await getOne('SELECT 1 FROM users WHERE id = $1', [target.otherUserId]);
+  }
   if (!exists) {
     res.status(400);
     throw new Error('ไม่พบห้องที่จะส่ง');

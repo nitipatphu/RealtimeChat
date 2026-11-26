@@ -17,7 +17,8 @@ export function loadSettings() {
   if (!saved) return { ...DEFAULT_SETTINGS };
   try {
     return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
-  } catch {
+  } catch (error) {
+    console.log(error);
     return { ...DEFAULT_SETTINGS };
   }
 }
@@ -32,8 +33,8 @@ export function saveSettings(settings) {
   try {
     const user = JSON.parse(savedUser);
     apiSend('PUT', '/users/' + user.id + '/settings', { settings: settings }).catch(() => {});
-  } catch {
-    return;
+  } catch (error) {
+    console.log(error);
   }
 }
 
@@ -46,7 +47,8 @@ export function setSettingsFromServer(serverSettings) {
 function getSavedUser() {
   try {
     return JSON.parse(localStorage.getItem('user') || 'null');
-  } catch {
+  } catch (error) {
+    console.log(error);
     return null;
   }
 }

@@ -34,7 +34,8 @@ function getSavedUser() {
   if (!saved || !getToken()) return null;
   try {
     return JSON.parse(saved);
-  } catch {
+  } catch (error) {
+    console.log(error);
     return null;
   }
 }

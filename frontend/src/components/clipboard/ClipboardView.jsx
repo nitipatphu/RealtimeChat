@@ -113,7 +113,8 @@ export default function ClipboardView({ currentUser }) {
       }
       await apiSend('POST', '/users/' + currentUser.id + '/clips', { title: '', text: text });
       reload();
-    } catch {
+    } catch (error) {
+      console.log(error);
       setModal({ clip: null });
     }
   };

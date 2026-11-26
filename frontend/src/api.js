@@ -30,7 +30,8 @@ async function readResponse(res) {
   let data;
   try {
     data = await res.json();
-  } catch {
+  } catch (error) {
+    console.log(error);
     data = {};
   }
 

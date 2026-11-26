@@ -170,20 +170,18 @@ function TierFormModal({ tier, onClose, onSaved }) {
 
 export default function TierSettingsCard({ canEdit, showSaved }) {
   const [editing, setEditing] = useState(null);
-  const [, setVersion] = useState(0);
 
   const tiers = getTierList();
   const vipTiers = tiers.filter(tier => tier.id !== NO_TIER);
 
   const applyTiers = (next) => {
     setTierSettings(next);
-    setVersion(v => v + 1);
+    showSaved();
   };
 
   const handleSaved = (next) => {
     applyTiers(next);
     setEditing(null);
-    showSaved();
   };
 
   const move = async (tier, direction) => {
@@ -201,7 +199,6 @@ export default function TierSettingsCard({ canEdit, showSaved }) {
     try {
       const data = await apiSend('DELETE', '/admin/vip-tiers/' + tier.id);
       applyTiers(data.tiers);
-      showSaved();
     } catch (err) {
       showError(err.message);
     }

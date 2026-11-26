@@ -47,11 +47,6 @@ export const requireAuth = async (req, res, next) => {
   req.authUser = user;
   req.token = token;
 
-  if (req.body && typeof req.body === 'object') {
-    req.body.userId = user.id;
-  }
-  Object.defineProperty(req, 'query', { value: { ...req.query, userId: user.id }, writable: true, configurable: true });
-
   next();
 };
 
